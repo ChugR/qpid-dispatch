@@ -351,6 +351,7 @@ const char *qd_config_connector_name(qd_config_connector_t *cc)
 void qd_connection_manager_connection_opened(qd_connection_t *conn)
 {
     qd_config_connector_t *cc = (qd_config_connector_t*) qd_connection_get_config_context(conn);
+    qd_log(conn->server->log_source, QD_LOG_TRACE, "[%d]:%s", 1, "XX");
     if (cc && cc->is_connector && cc->open_handler)
         cc->open_handler(cc->handler_context, conn);
 }

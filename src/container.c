@@ -21,6 +21,7 @@
 #include <string.h>
 #include "dispatch_private.h"
 #include "connection_manager_private.h"
+#include "policy.h"
 #include <qpid/dispatch/container.h>
 #include <qpid/dispatch/server.h>
 #include <qpid/dispatch/message.h>
@@ -320,9 +321,7 @@ int pn_event_handler(void *handler_context, void *conn_context, pn_event_t *even
 
     switch (pn_event_type(event)) {
     case PN_CONNECTION_REMOTE_OPEN :
-        if (pn_connection_state(conn) & PN_LOCAL_UNINIT)
-            pn_connection_open(conn);
-        qd_connection_manager_connection_opened(qd_conn);
+        qd_connection_invoke_deferred(qd_conn, qd_policy_handle_deferred_open, qd_conn);
         break;
 
     case PN_CONNECTION_REMOTE_CLOSE :
