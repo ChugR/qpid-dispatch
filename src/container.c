@@ -21,7 +21,7 @@
 #include <string.h>
 #include "dispatch_private.h"
 #include "connection_manager_private.h"
-#include "policy.h"
+#include "policy_private.h"
 #include <qpid/dispatch/container.h>
 #include <qpid/dispatch/server.h>
 #include <qpid/dispatch/message.h>
