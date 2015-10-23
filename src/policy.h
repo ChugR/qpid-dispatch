@@ -28,8 +28,12 @@
 #include "entity_cache.h"
 #include <dlfcn.h>
 
-/**
- * Private Function Prototypes
- */
-
-void qd_policy_handle_deferred_open(void *context, bool discard);
+/** Allow or deny an incoming connection.
+ * An Open performative was received over a new connection.
+ * Consult local policy to determine if this host/user is
+ * allow to make this connection. The underlying proton 
+ * connection is either opened or closed.
+ * @param[in] context a qd_connection_t object
+ * @param[in] discard callback switch
+ **/
+void qd_policy_handle_open(void *context, bool discard);

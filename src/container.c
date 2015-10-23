@@ -321,7 +321,15 @@ int pn_event_handler(void *handler_context, void *conn_context, pn_event_t *even
 
     switch (pn_event_type(event)) {
     case PN_CONNECTION_REMOTE_OPEN :
-        qd_connection_invoke_deferred(qd_conn, qd_policy_handle_deferred_open, qd_conn);
+        if (true) {  // TODO: detect if a policy engine is present
+            // Let policy engine decide about this connection
+            qd_connection_invoke_deferred(qd_conn, qd_policy_handle_open, qd_conn);
+        } else {
+            // No policy engine; allow the connection
+            if (pn_connection_state(conn) & PN_LOCAL_UNINIT)
+                pn_connection_open(conn);
+            qd_connection_manager_connection_opened(qd_conn);
+        }
         break;
 
     case PN_CONNECTION_REMOTE_CLOSE :
