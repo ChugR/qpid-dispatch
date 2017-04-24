@@ -887,9 +887,12 @@ void qd_message_free(qd_message_t *in_msg)
     free_qd_message_t((qd_message_t*) msg);
 }
 
+static u_int32_t message_copy_calls = 0;
 
 qd_message_t *qd_message_copy(qd_message_t *in_msg)
 {
+    message_copy_calls++;
+    
     qd_message_pvt_t     *msg     = (qd_message_pvt_t*) in_msg;
     qd_message_content_t *content = msg->content;
     qd_message_pvt_t     *copy    = (qd_message_pvt_t*) new_qd_message_t();
@@ -939,20 +942,36 @@ qd_parsed_field_t *qd_message_message_annotations(qd_message_t *in_msg)
 }
 
 
+static u_int32_t message_copy_set_trace = 0;
+static u_int32_t message_copy_set_trace_was_mt = 0;
+static u_int32_t message_copy_set_trace_is_mt = 0;
 void qd_message_set_trace_annotation(qd_message_t *in_msg, qd_composed_field_t *trace_field)
 {
+    message_copy_set_trace++;
     qd_message_pvt_t *msg = (qd_message_pvt_t*) in_msg;
+    if (qd_buffer_list_length(&msg->ma_trace) == 0)
+        message_copy_set_trace_was_mt++;
     qd_buffer_list_free_buffers(&msg->ma_trace);
     qd_compose_take_buffers(trace_field, &msg->ma_trace);
     qd_compose_free(trace_field);
+    if (qd_buffer_list_length(&msg->ma_trace) == 0)
+        message_copy_set_trace_is_mt++;
 }
 
+static u_int32_t message_copy_set_override = 0;
+static u_int32_t message_copy_set_override_was_mt = 0;
+static u_int32_t message_copy_set_override_is_mt = 0;
 void qd_message_set_to_override_annotation(qd_message_t *in_msg, qd_composed_field_t *to_field)
 {
+    message_copy_set_override++;
     qd_message_pvt_t *msg = (qd_message_pvt_t*) in_msg;
+    if (qd_buffer_list_length(&msg->ma_to_override) == 0)
+        message_copy_set_override_was_mt++;
     qd_buffer_list_free_buffers(&msg->ma_to_override);
     qd_compose_take_buffers(to_field, &msg->ma_to_override);
     qd_compose_free(to_field);
+    if (qd_buffer_list_length(&msg->ma_to_override) == 0)
+        message_copy_set_override_is_mt++;
 }
 
 void qd_message_set_phase_annotation(qd_message_t *in_msg, int phase)
@@ -967,12 +986,20 @@ int qd_message_get_phase_annotation(const qd_message_t *in_msg)
     return msg->ma_phase;
 }
 
+static u_int32_t message_copy_set_annotation = 0;
+static u_int32_t message_copy_set_annotation_was_mt = 0;
+static u_int32_t message_copy_set_annotation_is_mt = 0;
 void qd_message_set_ingress_annotation(qd_message_t *in_msg, qd_composed_field_t *ingress_field)
 {
+    message_copy_set_annotation++;
     qd_message_pvt_t *msg = (qd_message_pvt_t*) in_msg;
+    if (qd_buffer_list_length(&msg->ma_ingress) == 0)
+        message_copy_set_annotation_was_mt++;
     qd_buffer_list_free_buffers(&msg->ma_ingress);
     qd_compose_take_buffers(ingress_field, &msg->ma_ingress);
     qd_compose_free(ingress_field);
+    if (qd_buffer_list_length(&msg->ma_ingress) == 0)
+        message_copy_set_annotation_is_mt++;
 }
 
 qd_message_t *qd_message_receive(pn_delivery_t *delivery)
