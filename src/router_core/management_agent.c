@@ -90,6 +90,7 @@ ALLOC_DEFINE(qd_management_context_t);
 /**
  * Convenience function to create and initialize context (qd_management_context_t)
  */
+static uint32_t message_copy_calls_qd_management = 0;
 static qd_management_context_t* qd_management_context(qd_message_t               *msg,
                                                       qd_message_t               *source,
                                                       qd_composed_field_t        *field,
@@ -102,6 +103,7 @@ static qd_management_context_t* qd_management_context(qd_message_t              
     ctx->count  = count;
     ctx->field  = field;
     ctx->msg    = msg;
+    message_copy_calls_qd_management++;
     ctx->source = qd_message_copy(source);
     ctx->query  = query;
     ctx->current_count = 0;

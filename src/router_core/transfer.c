@@ -180,11 +180,12 @@ void qdr_link_flow(qdr_core_t *core, qdr_link_t *link, int credit, bool drain_mo
     qdr_action_enqueue(core, action);
 }
 
-
+static u_int32_t message_copy_calls_qdr_send_to1 = 0;
 void qdr_send_to1(qdr_core_t *core, qd_message_t *msg, qd_iterator_t *addr, bool exclude_inprocess, bool control)
 {
     qdr_action_t *action = qdr_action(qdr_send_to_CT, "send_to");
     action->args.io.address           = qdr_field_from_iter(addr);
+    message_copy_calls_qdr_send_to1++;
     action->args.io.message           = qd_message_copy(msg);
     action->args.io.exclude_inprocess = exclude_inprocess;
     action->args.io.control           = control;
@@ -192,11 +193,12 @@ void qdr_send_to1(qdr_core_t *core, qd_message_t *msg, qd_iterator_t *addr, bool
     qdr_action_enqueue(core, action);
 }
 
-
+static u_int32_t message_copy_calls_qdr_send_to2 = 0;
 void qdr_send_to2(qdr_core_t *core, qd_message_t *msg, const char *addr, bool exclude_inprocess, bool control)
 {
     qdr_action_t *action = qdr_action(qdr_send_to_CT, "send_to");
     action->args.io.address           = qdr_field(addr);
+    message_copy_calls_qdr_send_to2++;
     action->args.io.message           = qd_message_copy(msg);
     action->args.io.exclude_inprocess = exclude_inprocess;
     action->args.io.control           = control;
