@@ -42,9 +42,7 @@ else
         echo "No qdrouterd is running"
         exit 1
     else
-        if [ "1" -eq "$PIDC" ]; then
-            # one router pid is what we want
-        else
+        if [ "1" -ne "$PIDC" ]; then
             echo "More than one router is running."
             echo "Select one by choosing a pid. Pids are: $ROUTERPID"
             exit 1
