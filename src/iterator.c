@@ -864,7 +864,7 @@ void qd_iterator_get_view_cursor(
 }
 
 
-int qd_iterator_get_raw_size(const qd_iterator_t *iter)
+int qd_iterator_get_raw_iter_size(const qd_iterator_t *iter)
 {
-    return iter->start_pointer.remaining;
+    return iter->view_start_pointer.remaining;
 }

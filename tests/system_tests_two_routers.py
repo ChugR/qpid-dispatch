@@ -45,7 +45,7 @@ class RouterTest(TestCase):
         """Start a router and a messenger"""
         super(RouterTest, cls).setUpClass()
 
-        RouterTest.annotations_v1 = False
+        RouterTest.annotations_v1 = True
         def router(name, client_server, connection):
 
             config = [

@@ -549,7 +549,6 @@ bool qd_parse_annotations_v1(
 {
     // Initial snapshot on size/content of annotation payload
     (*all_annotations)->raw_iter = qd_iterator_sub(ma_iter_in, iter_skip);
-    qd_iterator_advance(ma_iter_in, iter_skip);
 
     // Capture the blob pointer when there are no router annotations
     qd_parse_get_view_cursor(*all_annotations, blob_pointer);
@@ -558,6 +557,7 @@ bool qd_parse_annotations_v1(
     qd_parse_free(*all_annotations);
 
     // Do full parse
+    qd_iterator_reset(ma_iter_in);
     *all_annotations = qd_parse(ma_iter_in);
     if (*all_annotations == 0 ||
         !qd_parse_ok(*all_annotations) ||
@@ -566,7 +566,7 @@ bool qd_parse_annotations_v1(
         return false;
     }
 
-    *blob_item_count = qd_parse_sub_count(*all_annotations);
+    *blob_item_count = qd_parse_sub_count(*all_annotations) * 2;
 
     // Hunt through the map and find the boundary between
     // user annotations and router annotations.
@@ -582,21 +582,18 @@ bool qd_parse_annotations_v1(
         qd_iterator_t *iter = qd_parse_raw(key);
         if (!iter)
             break;
-        if (qd_iterator_prefix(iter, QD_MA_PREFIX))
+        if (!qd_iterator_prefix(iter, QD_MA_PREFIX))
             break;
         qd_parsed_field_t *val = qd_parse_sub_value_rev(*all_annotations, idx);
         if (!val)
-            break;
-        qd_iterator_t *iterv = qd_parse_raw(val);
-        if (!iterv)
             break;
 
         // accumulate router annotations
         // number of annotations
         n_router_annos++;
         // size of annotation key and annotations value
-        router_raw_bytes += qd_iterator_get_raw_size(iter);
-        router_raw_bytes += qd_iterator_get_raw_size(iterv);
+        router_raw_bytes += qd_parse_get_parsed_field_raw_size(key);
+        router_raw_bytes += qd_parse_get_parsed_field_raw_size(val);
 
         // put the extracted value into common storage
         if        (qd_iterator_equal(iter, (unsigned char*) QD_MA_TRACE)) {
@@ -618,8 +615,9 @@ bool qd_parse_annotations_v1(
     // Adjust size of user annotation blob by the size of the router
     // annotations
     blob_pointer->remaining -= router_raw_bytes;
-    assert(blob_pointer->remaining > 0);
-    *blob_item_count -= 2 * n_router_annos;
+    assert(blob_pointer->remaining >= 0);
+
+    *blob_item_count -= n_router_annos * 2;
     assert(*blob_item_count >= 0);
     return true;
 }
@@ -765,10 +763,13 @@ void qd_parse_annotations(
 
     switch (hello_version) {
         case 0:
-            qd_parse_annotations_v0(ma_iter_in, ma_ingress, ma_phase,
+#if 0
+            // HACK ALERT: pretend there's an override
+            qd_parse_annotations_v1(ma_iter_in, ma_ingress, ma_phase,
                                     ma_to_override, ma_trace,
                                     blob_pointer, blob_item_count,
                                     all_annotations, (size - length_of_count));
+#endif
             break;
         case 1:
             qd_parse_annotations_v1(ma_iter_in, ma_ingress, ma_phase,
@@ -798,4 +799,10 @@ void qd_parse_get_view_cursor(
 {
     if (field->raw_iter)
         qd_iterator_get_view_cursor(field->raw_iter, ptr);
+}
+
+
+int qd_parse_get_parsed_field_raw_size(const qd_parsed_field_t *field)
+{
+    return qd_iterator_get_raw_iter_size(field->typed_iter);
 }

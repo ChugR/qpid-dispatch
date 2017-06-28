@@ -40,7 +40,7 @@ class RouterTest(TestCase):
         super(RouterTest, cls).setUpClass()
         name = "test-router"
         RouterTest.listen_port = cls.tester.get_port()
-        RouterTest.annotations_v1 = False
+        RouterTest.annotations_v1 = True
         config = Qdrouterd.Config([
             ('router', {'mode': 'standalone', 'id': 'QDR', 'allowUnsettledMulticast': 'yes'}),
 

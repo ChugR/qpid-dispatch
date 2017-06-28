@@ -324,6 +324,11 @@ void qd_parse_get_view_cursor(
     const qd_parsed_field_t *field,
     qd_iterator_pointer_t *ptr);
 
+/**
+ * TODO
+ */
+int qd_parse_get_parsed_field_raw_size(const qd_parsed_field_t *field);
+
 ///@}
 
 #endif

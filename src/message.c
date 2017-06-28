@@ -1317,6 +1317,18 @@ static void compose_message_annotations(qd_message_pvt_t *msg, qd_buffer_list_t 
         break;
     case QD_ANNO_SCHEME_NONE:
         compose_message_annotations_v0(msg, out);
+#if 0
+        if (strip_annotations) {
+            compose_message_annotations_v0(msg, out);
+        } else {
+            // Don't strip annotations AND the destination does not have a hello protocol version.
+            // Return the annotations in V1 format for self tests.
+            // This doesn't work that great.
+            // TODO: Add a listener version override for in and out so self tests
+            //       can drive this on their own.
+            compose_message_annotations_v1(msg, out, out_trailer, strip_annotations);
+        }
+#endif
         break;
     case QD_ANNO_SCHEME_V1:
         compose_message_annotations_v1(msg, out, out_trailer, strip_annotations);
@@ -1358,17 +1370,6 @@ void qd_message_send(qd_message_t *in_msg,
         cursor = content->section_message_header.offset + qd_buffer_base(buf);
         advance(&cursor, &buf,
                 content->section_message_header.length + content->section_message_header.hdr_length,
-                send_handler, (void*) pnl);
-    }
-
-    //
-    // Send delivery annotation if present
-    //
-    if (content->section_delivery_annotation.length > 0) {
-        buf    = content->section_delivery_annotation.buffer;
-        cursor = content->section_delivery_annotation.offset + qd_buffer_base(buf);
-        advance(&cursor, &buf,
-                content->section_delivery_annotation.length + content->section_delivery_annotation.hdr_length,
                 send_handler, (void*) pnl);
     }
 
