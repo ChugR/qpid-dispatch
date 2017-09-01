@@ -36,6 +36,12 @@
  * @{
  */
 
+// HACK ALERT - DISPATCH-807
+// Define buffer count limits in message handling Q2 dispatch buffers
+// bang bang hysteresis control
+#define DISPATCH_807_LIMIT_UPPER 256
+#define DISPATCH_807_LIMIT_LOWER 128
+
 // Callback for status change (confirmed persistent, loaded-in-memory, etc.)
 
 typedef struct qd_message_t qd_message_t;
@@ -350,6 +356,21 @@ size_t qd_message_fanout(qd_message_t *msg);
  * @param msg A pointer to the message.
  */
 void qd_message_add_fanout(qd_message_t *msg);
+
+/**
+ * Setter for message input_holdoff state
+ *
+ * @param msg A pointer to the message
+ */
+void qd_message_set_input_holdoff(qd_message_t *msg, bool holdoff);
+
+/**
+ * Accessor for message input_holdoff state
+ *
+ * @param msg A pointer to the message
+ * @return true if input is being held off
+ */
+bool qd_message_get_input_holdoff(qd_message_t *msg);
 
 ///@}
 

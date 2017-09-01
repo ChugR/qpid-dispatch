@@ -1827,3 +1827,15 @@ int qd_message_get_phase_val(qd_message_t *msg)
 {
     return ((qd_message_pvt_t*)msg)->content->ma_int_phase;
 }
+
+
+void qd_message_set_input_holdoff(qd_message_t *msg, bool holdoff)
+{
+    ((qd_message_pvt_t*)msg)->input_holdoff = holdoff;
+}
+
+
+bool qd_message_get_input_holdoff(qd_message_t *msg)
+{
+    return ((qd_message_pvt_t*)msg)->input_holdoff;
+}
