@@ -61,6 +61,17 @@ static void set_content(qd_message_content_t *content, size_t len)
 }
 
 
+static void set_content_bufs(qd_message_content_t *content, int nbufs)
+{
+    for (; nbufs > 0; nbufs--) {
+        qd_buffer_t *buf = qd_buffer();
+        size_t segment   = qd_buffer_capacity(buf);
+        qd_buffer_insert(buf, segment);
+        DEQ_INSERT_TAIL(content->buffers, buf);
+    }
+}
+
+
 static char* test_send_to_messenger(void *context)
 {
     qd_message_t         *msg     = qd_message();
@@ -246,6 +257,7 @@ static char* test_send_message_annotations(void *context)
     qd_composed_field_t *trace = qd_compose_subfield(0);
     qd_compose_start_list(trace);
     qd_compose_insert_string(trace, "Node1");
+
     qd_compose_insert_string(trace, "Node2");
     qd_compose_end_list(trace);
     qd_message_set_trace_annotation(msg, trace);
@@ -314,6 +326,24 @@ static char* test_send_message_annotations(void *context)
 }
 
 
+static char* test_input_holdoff_sensing(void *context)
+{
+    for (int i=1; i<DISPATCH_807_LIMIT_UPPER + 1; i++) {
+        qd_message_t         *msg     = qd_message();
+        qd_message_content_t *content = MSG_CONTENT(msg);
+
+        set_content_bufs(content, i);
+        if (qd_message_holdoff_would_block(msg) == (i < DISPATCH_807_LIMIT_UPPER))
+            return "qd_message_holdoff_would_block was miscalculated";
+        if (qd_message_holdoff_would_unblock(msg) == (i >= DISPATCH_807_LIMIT_LOWER))
+            return "qd_message_holdoff_would_unblock was miscalculated";
+
+        qd_message_free(msg);
+    }
+    return 0;
+}
+
+
 int message_tests(void)
 {
     int result = 0;
@@ -324,6 +354,7 @@ int message_tests(void)
     TEST_CASE(test_message_properties, 0);
     TEST_CASE(test_check_multiple, 0);
     TEST_CASE(test_send_message_annotations, 0);
+    TEST_CASE(test_input_holdoff_sensing, 0);
 
     return result;
 }

@@ -372,6 +372,23 @@ void qd_message_set_input_holdoff(qd_message_t *msg, bool holdoff);
  */
 bool qd_message_get_input_holdoff(qd_message_t *msg);
 
+/**
+ * Test if attempt to retreive message data through qd_message_recv would block
+ * due to input holdoff limit being exceeded.
+ *
+ * @param msg A pointer to the message
+ */
+bool qd_message_holdoff_would_block(qd_message_t *msg);
+
+/**
+ * Test if a message that is blocked by input holdoff has enough room
+ * to begin receiving again.
+ *
+ * @param msg A pointer to the message
+ */
+bool qd_message_holdoff_would_unblock(qd_message_t *msg);
+
+
 ///@}
 
 #endif

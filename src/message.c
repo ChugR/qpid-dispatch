@@ -1839,3 +1839,16 @@ bool qd_message_get_input_holdoff(qd_message_t *msg)
 {
     return ((qd_message_pvt_t*)msg)->input_holdoff;
 }
+
+
+bool qd_message_holdoff_would_block(qd_message_t *msg)
+{
+    return DEQ_SIZE(((qd_message_pvt_t*)msg)->content->buffers) >= DISPATCH_807_LIMIT_UPPER;
+}
+
+
+bool qd_message_holdoff_would_unblock(qd_message_t *msg)
+{
+    return DEQ_SIZE(((qd_message_pvt_t*)msg)->content->buffers) < DISPATCH_807_LIMIT_LOWER;
+}
+
