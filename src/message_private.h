@@ -111,6 +111,7 @@ typedef struct {
     bool                 discard;                        // Should this message be discarded?
     bool                 receive_complete;               // true if the message has been completely received, false otherwise
     sys_atomic_t         fanout;                         // The number of receivers for this message. This number does not include in-process subscribers.
+    bool                 input_holdoff;    // DISPATCH-807 input is throttled back
 } qd_message_content_t;
 
 typedef struct {
@@ -126,7 +127,6 @@ typedef struct {
     qd_buffer_list_t      ma_ingress;      // ingress field in outgoing message annotations
     int                   ma_phase;        // phase for the override address
     bool                  strip_annotations_in;
-    bool                  input_holdoff;   // DISPATCH-807 input is throttled back
 } qd_message_pvt_t;
 
 ALLOC_DECLARE(qd_message_t);

@@ -1109,6 +1109,15 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
     }
 
     //
+    // If input is in holdoff then just exit. When enough buffers
+    // have been processed on the outbound side then the message be
+    // unblocked.
+    if (msg->content->input_holdoff) {
+        qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive with input_holdoff true");
+        return (qd_message_t*)msg;
+    }
+    
+    //
     // The discard flag indicates if we should continue receiving the message.
     // This is pertinent in the case of large messages. When large messages are being received, we try to send out part of the
     // message that has been received so far. If we not able to send it anywhere, there is no need to keep creating buffers
@@ -1188,7 +1197,19 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 buf = qd_buffer();
                 DEQ_INSERT_TAIL(msg->content->buffers, buf);
             }
+            bool should_block_in = qd_message_holdoff_would_block((qd_message_t *)msg);
+            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive: received. Count =%d bufs", DEQ_SIZE(msg->content->buffers));
             sys_mutex_unlock(msg->content->lock);
+
+            //
+            // If there are enough buffers in the qd_message buffer chain
+            // then begin input holdoff.
+            //
+            if (should_block_in) {
+                qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive Input blocking has begun");
+                msg->content->input_holdoff = true;
+                return (qd_message_t *)msg;
+            }
 
         } else
             //
@@ -1342,6 +1363,7 @@ void qd_message_send(qd_message_t *in_msg,
     qd_message_content_t *content = msg->content;
     qd_buffer_t          *buf     = 0;
     pn_link_t            *pnl     = qd_link_pn(link);
+    pn_session_t         *pns     = qd_link_pn_session(link);
 
     int                  fanout   = qd_message_fanout(in_msg);
 
@@ -1443,14 +1465,21 @@ void qd_message_send(qd_message_t *in_msg,
     if (!buf)
         return;
 
-    while (buf) {
+    bool buffers_freed = false;  // freeing buffers may clear input holdoff
+
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: outbound bytes:%d",
+           pn_session_outgoing_bytes(pns));
+
+    while (buf && pn_session_outgoing_bytes(pns) < DISPATCH_807_OUTBOUND_BYTE_LIMIT) {
         size_t buf_size = qd_buffer_size(buf);
 
         // This will send the remaining data in the buffer if any.
         int num_bytes_to_send = buf_size - (msg->cursor.cursor - qd_buffer_base(buf));
-        if (num_bytes_to_send > 0)
+        if (num_bytes_to_send > 0) {
             pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
-
+            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: send %d bytes",
+           num_bytes_to_send);
+        }
         // If the entire message has already been received,  taking out this lock is not that expensive
         // because there is no contention for this lock.
         sys_mutex_lock(msg->content->lock);
@@ -1465,6 +1494,8 @@ void qd_message_send(qd_message_t *in_msg,
                     DEQ_REMOVE_HEAD(content->buffers);
                     qd_buffer_free(local_buf);
                     local_buf = DEQ_HEAD(content->buffers);
+                    buffers_freed = true;
+                    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: freed a buffer. Count=%d bufs", DEQ_SIZE(content->buffers));
                 }
             }
             msg->cursor.buffer = next_buf;
@@ -1494,6 +1525,19 @@ void qd_message_send(qd_message_t *in_msg,
         sys_mutex_unlock(msg->content->lock);
 
         buf = next_buf;
+    }
+
+    // HACK ALERT - debug
+    if (pn_session_outgoing_bytes(pns) > DISPATCH_807_OUTBOUND_BYTE_LIMIT) {
+        qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send Output blocking in effect");
+    }
+
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: *** qd_message_send Input holdoff:%s, buffers_freed:%s, buffers:%d", (msg->content->input_holdoff ? "true" : "false"), (buffers_freed ? "true" : "false"), DEQ_SIZE(msg->content->buffers));
+    if (msg->content->input_holdoff && buffers_freed) {
+        if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
+            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send Input blocking has ended");
+            msg->content->input_holdoff = false;
+        }
     }
 }
 
@@ -1831,13 +1875,13 @@ int qd_message_get_phase_val(qd_message_t *msg)
 
 void qd_message_set_input_holdoff(qd_message_t *msg, bool holdoff)
 {
-    ((qd_message_pvt_t*)msg)->input_holdoff = holdoff;
+    ((qd_message_pvt_t*)msg)->content->input_holdoff = holdoff;
 }
 
 
 bool qd_message_get_input_holdoff(qd_message_t *msg)
 {
-    return ((qd_message_pvt_t*)msg)->input_holdoff;
+    return ((qd_message_pvt_t*)msg)->content->input_holdoff;
 }
 
 

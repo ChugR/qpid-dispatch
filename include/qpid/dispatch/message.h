@@ -39,8 +39,11 @@
 // HACK ALERT - DISPATCH-807
 // Define buffer count limits in message handling Q2 dispatch buffers
 // bang bang hysteresis control
-#define DISPATCH_807_LIMIT_UPPER 256
-#define DISPATCH_807_LIMIT_LOWER 128
+#define DISPATCH_807_LIMIT_UPPER 128
+#define DISPATCH_807_LIMIT_LOWER 100
+
+// Define proton outbound_bytes for session throttling
+#define DISPATCH_807_OUTBOUND_BYTE_LIMIT (32*1024)
 
 // Callback for status change (confirmed persistent, loaded-in-memory, etc.)
 
