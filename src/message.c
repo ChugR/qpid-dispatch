@@ -36,6 +36,8 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "log_obj_namer.inc"
+
 const char *STR_AMQP_NULL = "null";
 const char *STR_AMQP_TRUE = "T";
 const char *STR_AMQP_FALSE = "F";
@@ -857,6 +859,7 @@ qd_message_t *qd_message()
     sys_atomic_init(&msg->content->ref_count, 1);
     msg->content->parse_depth = QD_DEPTH_NONE;
 
+    log_this_init();
     return (qd_message_t*) msg;
 }
 
@@ -1085,6 +1088,11 @@ qd_iterator_pointer_t qd_message_cursor(qd_message_pvt_t *in_msg)
     return msg->cursor;
 }
 
+void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_t *pns)
+{
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
+}
+
 qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 {
     pn_link_t        *link = pn_delivery_link(delivery);
@@ -1093,6 +1101,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 
     pn_record_t *record    = pn_delivery_attachments(delivery);
     qd_message_pvt_t *msg  = (qd_message_pvt_t*) pn_record_get(record, PN_DELIVERY_CTX);
+    pn_session_t     *pns  = pn_link_session(link);
 
     //
     // If there is no message associated with the delivery, this is the first time
@@ -1108,12 +1117,14 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         pn_record_set(record, PN_DELIVERY_CTX, (void*) msg);
     }
 
+    log_this("qd_message_receive - entry ", msg, link, pns);
+
     //
     // If input is in holdoff then just exit. When enough buffers
     // have been processed on the outbound side then the message be
     // unblocked.
     if (msg->content->input_holdoff) {
-        qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive with input_holdoff true");
+        log_this("qd_message_receive input_holdoff true - no bytes consumed", msg, link, pns);
         return (qd_message_t*)msg;
     }
     
@@ -1198,7 +1209,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 DEQ_INSERT_TAIL(msg->content->buffers, buf);
             }
             bool should_block_in = qd_message_holdoff_would_block((qd_message_t *)msg);
-            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive: received. Count =%d bufs", DEQ_SIZE(msg->content->buffers));
+            log_this("qd_message_receive - received some bytes", msg, link, pns);
             sys_mutex_unlock(msg->content->lock);
 
             //
@@ -1206,21 +1217,23 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // then begin input holdoff.
             //
             if (should_block_in) {
-                qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_receive Input blocking has begun");
+                log_this("qd_message_receive exit: Input blocking has begun", msg, link, pns);
                 msg->content->input_holdoff = true;
                 return (qd_message_t *)msg;
             }
 
-        } else
+        } else {
             //
             // We received zero bytes, and no PN_EOS.  This means that we've received
             // all of the data available up to this point, but it does not constitute
             // the entire message.  We'll be back later to finish it up.
             // Return the message so that the caller can start sending out whatever we have received so far
             //
+            log_this("qd_message_receive exit: Received 0, no PN_EOS", msg, link, pns);
             return (qd_message_t*) msg;
+        }
     }
-
+    log_this("qd_message_receive exit: return 0", msg, link, pns);
     return 0;
 }
 
@@ -1467,8 +1480,7 @@ void qd_message_send(qd_message_t *in_msg,
 
     bool buffers_freed = false;  // freeing buffers may clear input holdoff
 
-    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: outbound bytes:%d",
-           pn_session_outgoing_bytes(pns));
+    log_this("qd_message_send entry", msg, pnl, pns);
 
     while (buf && pn_session_outgoing_bytes(pns) < DISPATCH_807_OUTBOUND_BYTE_LIMIT) {
         size_t buf_size = qd_buffer_size(buf);
@@ -1477,8 +1489,7 @@ void qd_message_send(qd_message_t *in_msg,
         int num_bytes_to_send = buf_size - (msg->cursor.cursor - qd_buffer_base(buf));
         if (num_bytes_to_send > 0) {
             pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
-            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: send %d bytes",
-           num_bytes_to_send);
+            log_this("qd_message_send: send N bytes", msg, pnl, pns);
         }
         // If the entire message has already been received,  taking out this lock is not that expensive
         // because there is no contention for this lock.
@@ -1495,7 +1506,13 @@ void qd_message_send(qd_message_t *in_msg,
                     qd_buffer_free(local_buf);
                     local_buf = DEQ_HEAD(content->buffers);
                     buffers_freed = true;
-                    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send: freed a buffer. Count=%d bufs", DEQ_SIZE(content->buffers));
+                    log_this("qd_message_send: freed a buffer", msg, pnl, pns);
+                    if (msg->content->input_holdoff && buffers_freed) {
+                        if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
+                            log_this("##### qd_message_send Input blocking has ended", msg, pnl, pns);
+                            msg->content->input_holdoff = false;
+                        }
+                    }
                 }
             }
             msg->cursor.buffer = next_buf;
@@ -1529,16 +1546,13 @@ void qd_message_send(qd_message_t *in_msg,
 
     // HACK ALERT - debug
     if (pn_session_outgoing_bytes(pns) > DISPATCH_807_OUTBOUND_BYTE_LIMIT) {
-        qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send Output blocking in effect");
+        log_this("qd_message_send @@@@@ Output blocking in effect", msg, pnl, pns);
     }
+    if (msg->content->input_holdoff)
+        log_this("qd_message_send at exit: Input holdoff: true", msg, pnl, pns);
+    else
+        log_this("qd_message_send at exit: Input holdoff: false", msg, pnl, pns);
 
-    qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: *** qd_message_send Input holdoff:%s, buffers_freed:%s, buffers:%d", (msg->content->input_holdoff ? "true" : "false"), (buffers_freed ? "true" : "false"), DEQ_SIZE(msg->content->buffers));
-    if (msg->content->input_holdoff && buffers_freed) {
-        if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
-            qd_log(log_source, QD_LOG_CRITICAL, "HACK ALERT: qd_message_send Input blocking has ended");
-            msg->content->input_holdoff = false;
-        }
-    }
 }
 
 
