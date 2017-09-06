@@ -21,6 +21,23 @@
 #define PRINTF printf
 #endif
 
+#ifndef fatal
+#define fatal PRINTF
+#endif
+
+// #define MUTEX_ALLOCATE(X) pthread_mutex_t (X)
+// #define MUTEX_INIT(X)     pthread_mutex_init(&(X), NULL); 
+// #define MUTEX_LOCK(X)     pthread_mutex_lock(&(X));
+// #define MUTEX_UNLOCK(X)   pthread_mutex_unlock(&(X));
+// #define MUTEX_DESTROY(X)  pthread_mutex_destroy(&(X));
+
+
+#define MUTEX_ALLOCATE(X) sys_mutex_t * (X)
+#define MUTEX_INIT(X)     (X) = sys_mutex()
+#define MUTEX_LOCK(X)     sys_mutex_lock(X)
+#define MUTEX_UNLOCK(X)   sys_mutex_unlock(X)
+#define MUTEX_DESTROY(X)  sys_mutex_free(X)
+
 /* log object namer - shorter names than addresses */
 typedef struct log_obj_namer_s {
     struct log_obj_namer_s *next;
@@ -29,34 +46,68 @@ typedef struct log_obj_namer_s {
     char                   *longname;
 } log_obj_namer_t;
 
+
 typedef struct log_obj_namers_s {
-  pthread_mutex_t  lock;
+  MUTEX_ALLOCATE(lock);
   const char      *prefix;
   log_obj_namer_t *obj_namers;
   int              next_id;
 } log_obj_namers_t;
 
+
 log_obj_namers_t *log_obj_namers(const char *prefix) {
     log_obj_namers_t *lon = (log_obj_namers_t *)malloc(sizeof(log_obj_namers_t));
     if (lon == 0)
         fatal("failed to allocate namer for %s" , prefix);
-    pthread_mutex_init(&lon->lock, NULL);
+    MUTEX_INIT(lon->lock);
     lon->prefix = prefix;
     lon->obj_namers = 0;
     lon->next_id = 1;
     return lon;
 }
 
+
 void log_obj_namers_destroy(log_obj_namers_t *namer) {
-    pthread_mutex_destroy(&namer->lock);
+    MUTEX_DESTROY(namer->lock);
     // TODO:
 }
+
+
+/* Event csv logger */
+// static pn_timestamp_t tboot = 0;
+static bool              log_obj_inited = false;
+static log_obj_namers_t *log_transports = 0;
+static log_obj_namers_t *log_sessions   = 0;
+static log_obj_namers_t *log_links      = 0;
+static log_obj_namers_t *log_linknames  = 0;
+static log_obj_namers_t *log_deliveries = 0;
+
+
+void log_this_init(void) {
+    if (log_obj_inited) {
+        return;
+    }
+    log_obj_inited = true;
+
+//    tboot = time_now();
+//    PRINTF("Time(S), note, event, "
+//        "xport, maxFrame, "
+//        "session, incoming_capacty, outgoing_window, incoming_bytes, outgoing_bytes, "
+//        "link, linkName, link_is_receiver, max_message_size, remote_max_message_size, current, 
+//        credit, available, queued, unsettled\n");
+    log_transports = log_obj_namers("xport-");
+    log_sessions   = log_obj_namers("sessn-");
+    log_links      = log_obj_namers("link-");
+    log_linknames  = log_obj_namers("linkname-");
+    log_deliveries = log_obj_namers("dlvry-");
+}
+
 
 /* Given a pointer, return the short name from List
  * or add a new name
  */
 const char * log_obj_name_of(log_obj_namers_t *name_pool, void *ptr) {
-    pthread_mutex_lock(&name_pool->lock);
+    MUTEX_LOCK(name_pool->lock);
     log_obj_namer_t *last = 0;
     log_obj_namer_t *curr =  name_pool->obj_namers;
     while (curr) {
@@ -82,7 +133,7 @@ const char * log_obj_name_of(log_obj_namers_t *name_pool, void *ptr) {
         else
             last->next = curr;
     }
-    pthread_mutex_unlock(&name_pool->lock);
+    MUTEX_UNLOCK(name_pool->lock);
     return curr->name;
 }
 
@@ -91,7 +142,7 @@ const char * log_obj_name_of(log_obj_namers_t *name_pool, void *ptr) {
  * or add a new name
  */
 const char * log_obj_short_name_of(log_obj_namers_t *name_pool, const char* lname) {
-    pthread_mutex_lock(&name_pool->lock);
+    MUTEX_LOCK(name_pool->lock);
     log_obj_namer_t *last = 0;
     log_obj_namer_t *curr =  name_pool->obj_namers;
     while (curr) {
@@ -118,38 +169,16 @@ const char * log_obj_short_name_of(log_obj_namers_t *name_pool, const char* lnam
             name_pool->obj_namers = curr;
         else
             last->next = curr;
-        PRINTF(",MAPPED LINK NAME %s to long name %s\n", curr->name, curr->longname);
+        //PRINTF(",MAPPED LINK NAME %s to long name %s\n", curr->name, curr->longname);
     }
-    pthread_mutex_unlock(&name_pool->lock);
+    MUTEX_UNLOCK(name_pool->lock);
     return curr->name;
 }
 
 
-/* Event csv logger */
-static pn_timestamp_t tboot = 0;
-static log_obj_namers_t *log_transports = 0;
-static log_obj_namers_t *log_sessions   = 0;
-static log_obj_namers_t *log_links      = 0;
-static log_obj_namers_t *log_linknames  = 0;
-static log_obj_namers_t *log_deliveries = 0;
-
-
-void log_this_init(void) {
-    tboot = time_now();
-    PRINTF("Time(S), note, event, "
-        "xport, maxFrame, "
-        "session, incoming_capacty, outgoing_window, incoming_bytes, outgoing_bytes, "
-        "link, linkName, link_is_receiver, max_message_size, remote_max_message_size, current, credit, available, queued, unsettled\n");
-    log_transports = log_obj_namers("xport-");
-    log_sessions   = log_obj_namers("sessn-");
-    log_links      = log_obj_namers("link-");
-    log_linknames  = log_obj_namers("linkname-");
-    log_deliveries = log_obj_namers("dlvry-");
-}
-
-void log_this(pn_event_t *event, const char * note) {
-    pn_timestamp_t rtnow = time_now() - tboot;
-    double drtnow = rtnow;
+void log_event(pn_event_t *event, const char * note) {
+//    pn_timestamp_t rtnow = time_now() - tboot;
+    double drtnow = 0; //rtnow;
     drtnow /= 1000.0;
 
     const char * ename = pn_event_type_name(pn_event_type(event));
