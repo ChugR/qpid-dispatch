@@ -508,6 +508,19 @@ static void AMQP_disposition_handler(void* context, qd_link_t *link, pn_delivery
 }
 
 
+static void deferred_AMQP_rx_handler(void *context, bool discard) {
+    if (!discard) {
+        pn_delivery_t * pnd = (pn_delivery_t*)context;
+        pn_link_t     * pnl = pn_delivery_link(pnd);
+        qd_link_t     * qdl = pn_link_get_context(pnl);
+        qd_router_t   * qdr = (qd_router_t *)qd_link_get_node_context(qdl);
+        assert(qdr != 0);
+
+        AMQP_rx_handler(qdr, qdl, pnd);
+    }
+}
+
+
 /**
  * New Incoming Link Handler
  */
@@ -1079,7 +1092,19 @@ static void CORE_link_deliver(void *context, qdr_link_t *link, qdr_delivery_t *d
         pdlv = pn_link_current(plink);
     }
 
-    qd_message_send(qdr_delivery_message(dlv), qlink, qdr_link_strip_annotations_out(link));
+    bool wake_rx = false;
+
+    qd_message_t *qdmsg = qdr_delivery_message(dlv);
+    qd_message_send(qdmsg, qlink, qdr_link_strip_annotations_out(link), &wake_rx);
+
+    if (wake_rx) {
+        pn_delivery_t   *pnd = qd_message_get_receiving_delivery(qdmsg);
+        pn_link_t       *pnl = pn_delivery_link(pnd);
+        qd_link_t       *qdl = pn_link_get_context(pnl);
+        qd_connection_t *qdc = qd_link_connection(qdl);
+
+        qd_connection_invoke_deferred(qdc, deferred_AMQP_rx_handler, pnd);
+    }
 
     bool send_complete = qdr_delivery_send_complete(dlv);
 

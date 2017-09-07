@@ -1096,13 +1096,6 @@ void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_
 }
 
 
-static void deferred_receive(void *context, bool discard) {
-    if (!discard) {
-        qd_message_receive((pn_delivery_t*)context);
-    }
-}
-
-
 qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 {
     pn_link_t        *link = pn_delivery_link(delivery);
@@ -1121,9 +1114,9 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
     if (!msg) {
         msg = (qd_message_pvt_t*) qd_message();
         qd_link_t       *qdl = (qd_link_t *)pn_link_get_context(link);
+        qd_connection_t *qdc = qd_link_connection(qdl);
         msg->content->input_delivery = delivery;
-        msg->content->input_connection = qd_link_connection(qdl);
-        msg->strip_annotations_in  = qd_connection_strip_annotations_in(msg->content->input_connection);
+        msg->strip_annotations_in  = qd_connection_strip_annotations_in(qdc);
         pn_record_def(record, PN_DELIVERY_CTX, PN_WEAKREF);
         pn_record_set(record, PN_DELIVERY_CTX, (void*) msg);
     }
@@ -1381,7 +1374,8 @@ static void compose_message_annotations(qd_message_pvt_t *msg, qd_buffer_list_t 
 
 void qd_message_send(qd_message_t *in_msg,
                      qd_link_t    *link,
-                     bool          strip_annotations)
+                     bool          strip_annotations,
+                     bool         *invoke_deferred_rx_handler)
 {
     qd_message_pvt_t     *msg     = (qd_message_pvt_t*) in_msg;
     qd_message_content_t *content = msg->content;
@@ -1390,6 +1384,7 @@ void qd_message_send(qd_message_t *in_msg,
     pn_session_t         *pns     = qd_link_pn_session(link);
 
     int                  fanout   = qd_message_fanout(in_msg);
+    *invoke_deferred_rx_handler   = false;
 
     if (msg->sent_depth < QD_DEPTH_MESSAGE_ANNOTATIONS) {
 
@@ -1523,11 +1518,7 @@ void qd_message_send(qd_message_t *in_msg,
                             log_this("##### qd_message_send Input blocking has ended", msg, pnl, pns);
                             msg->content->input_holdoff = false;
                             // wake up receive side
-                            qd_connection_wake(msg->content->input_connection);
-                            qd_connection_invoke_deferred(
-                                msg->content->input_connection,
-                                deferred_receive,
-                                msg->content->input_delivery);
+                            *invoke_deferred_rx_handler = true;
                         }
                     }
                 }
@@ -1925,19 +1916,6 @@ bool qd_message_holdoff_would_block(qd_message_t *msg)
 bool qd_message_holdoff_would_unblock(qd_message_t *msg)
 {
     return DEQ_SIZE(((qd_message_pvt_t*)msg)->content->buffers) < DISPATCH_807_LIMIT_LOWER;
-}
-
-
-qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg)
-{
-    return ((qd_message_pvt_t *)msg)->content->input_connection;
-}
-
-
-void qd_message_set_receiving_connection(qd_message_t* msg,
-    qd_connection_t *conn)
-{
-    ((qd_message_pvt_t *)msg)->content->input_connection = conn;
 }
 
 

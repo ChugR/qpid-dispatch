@@ -224,8 +224,10 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery);
  *
  * @param msg A pointer to a message to be sent.
  * @param link The outgoing link on which to send the message.
+ * @param strip_outbound_annotations [in] annotation control flag
+ * @param invoke_deferred_rx_handler [out] indication to wake up receive process
  */
-void qd_message_send(qd_message_t *msg, qd_link_t *link, bool strip_outbound_annotations);
+void qd_message_send(qd_message_t *msg, qd_link_t *link, bool strip_outbound_annotations, bool *invoke_deferred_rx_handler);
 
 /**
  * Check that the message is well-formed up to a certain depth.  Any part of the message that is
@@ -390,22 +392,6 @@ bool qd_message_holdoff_would_block(qd_message_t *msg);
  * @param msg A pointer to the message
  */
 bool qd_message_holdoff_would_unblock(qd_message_t *msg);
-
-/**
- * Return qd_connection over which the message is being received.
- * @param msg A pointer to the message
- * @return the qd_connection
- */
-qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg);
-
-/**
- * Set qd_connection over which the message is being received.
- * 
- * @param msg A pointer to the message
- * @param conn A pointer to the connection
- */
-void qd_message_set_receiving_connection(qd_message_t* msg,
-    qd_connection_t *conn);
 
 /**
  * Return pn_delivery through which the message is being received.
