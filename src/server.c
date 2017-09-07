@@ -482,9 +482,12 @@ static void decorate_connection(qd_server_t *qd_server, pn_connection_t *conn, c
     pn_data_exit(pn_connection_properties(conn));
 }
 
-/* Wake function for proactor-manaed connections */
-static void connection_wake(qd_connection_t *ctx) {
-    if (ctx->pn_conn) pn_connection_wake(ctx->pn_conn);
+/* Wake function for proactor-managed connections */
+void qd_connection_wake(qd_connection_t *ctx) {
+    if (ctx->pn_conn) {
+        qd_log(ctx->server->log_source, QD_LOG_CRITICAL, "Wake the connection");
+        pn_connection_wake(ctx->pn_conn);
+    }
 }
 
 /* Construct a new qd_connection. Thread safe. */
@@ -503,7 +506,7 @@ qd_connection_t *qd_server_connection(qd_server_t *server, qd_server_config_t *c
         return NULL;
     }
     ctx->server = server;
-    ctx->wake = connection_wake; /* Default, over-ridden for HTTP connections */
+    ctx->wake = qd_connection_wake; /* Default, over-ridden for HTTP connections */
     pn_connection_set_context(ctx->pn_conn, ctx);
     DEQ_ITEM_INIT(ctx);
     DEQ_INIT(ctx->deferred_calls);

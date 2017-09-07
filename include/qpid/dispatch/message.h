@@ -391,6 +391,21 @@ bool qd_message_holdoff_would_block(qd_message_t *msg);
  */
 bool qd_message_holdoff_would_unblock(qd_message_t *msg);
 
+/**
+ * Return qd_connection over which the message is being received.
+ * @param msg A pointer to the message
+ * @return the qd_connection
+ */
+qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg);
+
+/**
+ * Set qd_connection over which the message is being received.
+ * 
+ * @param msg A pointer to the message
+ * @param conn A pointer to the connection
+ */
+void qd_message_set_receiving_connection(const qd_message_t* msg,
+    qd_connection_t *conn);
 
 ///@}
 

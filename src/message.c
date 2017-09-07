@@ -24,6 +24,7 @@
 #include <qpid/dispatch/iterator.h>
 #include <qpid/dispatch/log.h>
 #include <qpid/dispatch/buffer.h>
+#include <qpid/dispatch/server.h>
 #include <proton/object.h>
 #include "message_private.h"
 #include "compose_private.h"
@@ -1121,7 +1122,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 
     //
     // If input is in holdoff then just exit. When enough buffers
-    // have been processed on the outbound side then the message be
+    // have been processed on the outbound side then the message may be
     // unblocked.
     if (msg->content->input_holdoff) {
         log_this("qd_message_receive input_holdoff true - no bytes consumed", msg, link, pns);
@@ -1478,8 +1479,6 @@ void qd_message_send(qd_message_t *in_msg,
     if (!buf)
         return;
 
-    bool buffers_freed = false;  // freeing buffers may clear input holdoff
-
     log_this("qd_message_send entry", msg, pnl, pns);
 
     while (buf && pn_session_outgoing_bytes(pns) < DISPATCH_807_OUTBOUND_BYTE_LIMIT) {
@@ -1505,12 +1504,13 @@ void qd_message_send(qd_message_t *in_msg,
                     DEQ_REMOVE_HEAD(content->buffers);
                     qd_buffer_free(local_buf);
                     local_buf = DEQ_HEAD(content->buffers);
-                    buffers_freed = true;
                     log_this("qd_message_send: freed a buffer", msg, pnl, pns);
-                    if (msg->content->input_holdoff && buffers_freed) {
+                    if (msg->content->input_holdoff) {
                         if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
                             log_this("##### qd_message_send Input blocking has ended", msg, pnl, pns);
                             msg->content->input_holdoff = false;
+                            // wake up receive side
+                            qd_connection_wake(msg->content->input_connection);
                         }
                     }
                 }
@@ -1910,3 +1910,14 @@ bool qd_message_holdoff_would_unblock(qd_message_t *msg)
     return DEQ_SIZE(((qd_message_pvt_t*)msg)->content->buffers) < DISPATCH_807_LIMIT_LOWER;
 }
 
+
+qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg)
+{
+    return ((qd_message_pvt_t *)msg)->content->input_connection;
+}
+
+void qd_message_set_receiving_connection(const qd_message_t* msg,
+    qd_connection_t *conn)
+{
+    ((qd_message_pvt_t *)msg)->content->input_connection = conn;
+}

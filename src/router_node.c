@@ -197,6 +197,9 @@ static void AMQP_rx_handler(void* context, qd_link_t *link, pn_delivery_t *pnd)
     // Receive the message into a local representation.
     //
     qd_message_t   *msg   = qd_message_receive(pnd);
+    if (qd_message_get_receiving_connection(msg) == 0) {
+        qd_message_set_receiving_connection(msg, conn);
+    }
     bool receive_complete = qd_message_receive_complete(msg);
 
     if (receive_complete) {
