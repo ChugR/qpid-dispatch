@@ -1089,10 +1089,19 @@ qd_iterator_pointer_t qd_message_cursor(qd_message_pvt_t *in_msg)
     return msg->cursor;
 }
 
+
 void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_t *pns)
 {
     qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
 }
+
+
+static void deferred_receive(void *context, bool discard) {
+    if (!discard) {
+        qd_message_receive((pn_delivery_t*)context);
+    }
+}
+
 
 qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 {
@@ -1112,8 +1121,9 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
     if (!msg) {
         msg = (qd_message_pvt_t*) qd_message();
         qd_link_t       *qdl = (qd_link_t *)pn_link_get_context(link);
-        qd_connection_t *qdc = qd_link_connection(qdl);
-        msg->strip_annotations_in  = qd_connection_strip_annotations_in(qdc);
+        msg->content->input_delivery = delivery;
+        msg->content->input_connection = qd_link_connection(qdl);
+        msg->strip_annotations_in  = qd_connection_strip_annotations_in(msg->content->input_connection);
         pn_record_def(record, PN_DELIVERY_CTX, PN_WEAKREF);
         pn_record_set(record, PN_DELIVERY_CTX, (void*) msg);
     }
@@ -1504,6 +1514,9 @@ void qd_message_send(qd_message_t *in_msg,
                     DEQ_REMOVE_HEAD(content->buffers);
                     qd_buffer_free(local_buf);
                     local_buf = DEQ_HEAD(content->buffers);
+
+                    // by freeing a buffer there now may be room to restart a
+                    // stalled message receiver
                     log_this("qd_message_send: freed a buffer", msg, pnl, pns);
                     if (msg->content->input_holdoff) {
                         if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
@@ -1511,6 +1524,10 @@ void qd_message_send(qd_message_t *in_msg,
                             msg->content->input_holdoff = false;
                             // wake up receive side
                             qd_connection_wake(msg->content->input_connection);
+                            qd_connection_invoke_deferred(
+                                msg->content->input_connection,
+                                deferred_receive,
+                                msg->content->input_delivery);
                         }
                     }
                 }
@@ -1916,8 +1933,22 @@ qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg)
     return ((qd_message_pvt_t *)msg)->content->input_connection;
 }
 
-void qd_message_set_receiving_connection(const qd_message_t* msg,
+
+void qd_message_set_receiving_connection(qd_message_t* msg,
     qd_connection_t *conn)
 {
     ((qd_message_pvt_t *)msg)->content->input_connection = conn;
+}
+
+
+pn_delivery_t * qd_message_get_receiving_delivery(const qd_message_t *msg)
+{
+    return ((qd_message_pvt_t *)msg)->content->input_delivery;
+}
+
+
+void qd_message_set_receiving_delivery(qd_message_t* msg,
+    pn_delivery_t *delivery)
+{
+    ((qd_message_pvt_t *)msg)->content->input_delivery = delivery;
 }

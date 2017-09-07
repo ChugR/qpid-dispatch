@@ -113,6 +113,7 @@ typedef struct {
     sys_atomic_t         fanout;                         // The number of receivers for this message. This number does not include in-process subscribers.
     bool                 input_holdoff;    // DISPATCH-807 input is throttled back
     qd_connection_t     *input_connection; // DISPATCH-807 sender wakes this when holdoff is cleared
+    pn_delivery_t       *input_delivery;   // DISPATCH-807 message_receive's delivery
 } qd_message_content_t;
 
 typedef struct {

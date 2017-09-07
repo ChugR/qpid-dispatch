@@ -404,8 +404,24 @@ qd_connection_t * qd_message_get_receiving_connection(const qd_message_t *msg);
  * @param msg A pointer to the message
  * @param conn A pointer to the connection
  */
-void qd_message_set_receiving_connection(const qd_message_t* msg,
+void qd_message_set_receiving_connection(qd_message_t* msg,
     qd_connection_t *conn);
+
+/**
+ * Return pn_delivery through which the message is being received.
+ * @param msg A pointer to the message
+ * @return the pn_delivery
+ */
+pn_delivery_t * qd_message_get_receiving_delivery(const qd_message_t *msg);
+
+/**
+ * Set pn_delivery through which the message is being received.
+ * 
+ * @param msg A pointer to the message
+ * @param delivery A pointer to the delivery
+ */
+void qd_message_set_receiving_delivery(qd_message_t* msg,
+    pn_delivery_t *delivery);
 
 ///@}
 
