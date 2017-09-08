@@ -515,7 +515,7 @@ static void deferred_AMQP_rx_handler(void *context, bool discard) {
         qd_link_t     *qdl = pn_link_get_context(pnl);
         qd_router_t   *qdr = (qd_router_t *)qd_link_get_node_context(qdl);
         assert(qdr != 0);
-
+        qd_log(qd_message_log_source(), QD_LOG_CRITICAL, "in deferred_AMQP_rx_handler");
         AMQP_rx_handler(qdr, qdl, pnd);
     }
 }
@@ -1094,17 +1094,17 @@ static void CORE_link_deliver(void *context, qdr_link_t *link, qdr_delivery_t *d
 
     bool wake_rx = false;
 
-    qd_message_t *qdmsg = qdr_delivery_message(dlv);
-    qd_message_send(qdmsg, qlink, qdr_link_strip_annotations_out(link), &wake_rx);
+    qd_message_t *msg_out = qdr_delivery_message(dlv);
+    qd_message_send(msg_out, qlink, qdr_link_strip_annotations_out(link), &wake_rx);
 
     if (wake_rx) {
-        pn_delivery_t   *pnd = qd_message_get_receiving_delivery(qdmsg);
-        if (pnd) {
-            pn_link_t       *pnl = pn_delivery_link(pnd);
-            qd_link_t       *qdl = pn_link_get_context(pnl);
-            qd_connection_t *qdc = qd_link_connection(qdl);
+        pn_delivery_t   *pnd_in = qd_message_get_receiving_delivery(msg_out);
+        if (pnd_in) {
+            pn_link_t       *pnl_in = pn_delivery_link(pnd_in);
+            qd_link_t       *qdl_in = pn_link_get_context(pnl_in);
+            qd_connection_t *qdc_in = qd_link_connection(qdl_in);
 
-            qd_connection_invoke_deferred(qdc, deferred_AMQP_rx_handler, pnd);
+            qd_connection_invoke_deferred(qdc_in, deferred_AMQP_rx_handler, pnd_in);
         } else {
             wake_rx = false; // dummy for breakpoint
         }

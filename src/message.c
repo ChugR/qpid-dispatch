@@ -1092,7 +1092,7 @@ qd_iterator_pointer_t qd_message_cursor(qd_message_pvt_t *in_msg)
 
 void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_t *pns)
 {
-    //qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
 }
 
 
@@ -1198,6 +1198,8 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         if (rc > 0) {
             if (discard)
                 continue;
+
+            log_this("qd_message_receive - received some bytes", msg, link, pns);
             //
             // We have received a positive number of bytes for the message.  Advance
             // the cursor in the buffer.
@@ -1213,19 +1215,13 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 buf = qd_buffer();
                 DEQ_INSERT_TAIL(msg->content->buffers, buf);
             }
-            bool should_block_in = qd_message_holdoff_would_block((qd_message_t *)msg);
-            log_this("qd_message_receive - received some bytes", msg, link, pns);
-            sys_mutex_unlock(msg->content->lock);
-
-            //
-            // If there are enough buffers in the qd_message buffer chain
-            // then begin input holdoff.
-            //
-            if (should_block_in) {
+            if (qd_message_holdoff_would_block((qd_message_t *)msg)) {
                 log_this("qd_message_receive exit: Input blocking has begun", msg, link, pns);
                 msg->content->input_holdoff = true;
+                sys_mutex_unlock(msg->content->lock);
                 return (qd_message_t *)msg;
             }
+            sys_mutex_unlock(msg->content->lock);
 
         } else {
             //
@@ -1234,7 +1230,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // the entire message.  We'll be back later to finish it up.
             // Return the message so that the caller can start sending out whatever we have received so far
             //
-            log_this("qd_message_receive exit: Received 0, no PN_EOS", msg, link, pns);
+            log_this("qd_message_receive exit: Received 0, no PN_EOS. More data coming soon.", msg, link, pns);
             return (qd_message_t*) msg;
         }
     }
@@ -1528,7 +1524,7 @@ void qd_message_send(qd_message_t *in_msg,
             msg->cursor.cursor = qd_buffer_base(next_buf);
         }
         else {
-            if (qd_message_receive_complete(in_msg)) {
+            if ((in_msg)) {
                 //
                 // There is no next_buf and there is no more of the message coming, this means
                 // that we have completely sent out the message.
