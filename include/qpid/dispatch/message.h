@@ -43,7 +43,7 @@
 #define DISPATCH_807_LIMIT_LOWER 100
 
 // Define proton outbound_bytes for session throttling
-#define DISPATCH_807_OUTBOUND_BYTE_LIMIT (32*1024)
+#define DISPATCH_807_OUTBOUND_BYTE_LIMIT (32*1024 * 1024)
 
 // Callback for status change (confirmed persistent, loaded-in-memory, etc.)
 

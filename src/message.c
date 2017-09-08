@@ -1092,7 +1092,7 @@ qd_iterator_pointer_t qd_message_cursor(qd_message_pvt_t *in_msg)
 
 void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_t *pns)
 {
-    qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
+    //qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
 }
 
 
@@ -1172,6 +1172,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             //
             // We have received the entire message since rc == PN_EOS, set the receive_complete flag to true
             //
+            msg->content->input_delivery = 0;
             msg->content->receive_complete = true;
 
             //
@@ -1190,7 +1191,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 sys_mutex_unlock(msg->content->lock);
                 qd_buffer_free(buf);
             }
-
+            log_this("qd_message_receive - RECEIVE COMPLETE", msg, link, pns);
             return (qd_message_t*) msg;
         }
 
@@ -1515,7 +1516,7 @@ void qd_message_send(qd_message_t *in_msg,
                     log_this("qd_message_send: freed a buffer", msg, pnl, pns);
                     if (msg->content->input_holdoff) {
                         if (qd_message_holdoff_would_unblock((qd_message_t *)msg)) {
-                            log_this("##### qd_message_send Input blocking has ended", msg, pnl, pns);
+                            log_this("##### qd_message_send Input blocking has ended - run deferred_rx_handler", msg, pnl, pns);
                             msg->content->input_holdoff = false;
                             // wake up receive side
                             *invoke_deferred_rx_handler = true;
@@ -1532,6 +1533,7 @@ void qd_message_send(qd_message_t *in_msg,
                 // There is no next_buf and there is no more of the message coming, this means
                 // that we have completely sent out the message.
                 //
+                log_this("qd_message_send SEND COMPLETE", msg, pnl, pns);
                 msg->send_complete = true;
                 msg->cursor.buffer = 0;
                 msg->cursor.cursor = 0;

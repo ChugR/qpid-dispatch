@@ -485,7 +485,6 @@ static void decorate_connection(qd_server_t *qd_server, pn_connection_t *conn, c
 /* Wake function for proactor-managed connections */
 void qd_connection_wake(qd_connection_t *ctx) {
     if (ctx->pn_conn) {
-        qd_log(ctx->server->log_source, QD_LOG_CRITICAL, "Wake the connection");
         pn_connection_wake(ctx->pn_conn);
     }
 }
