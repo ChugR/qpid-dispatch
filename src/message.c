@@ -1092,7 +1092,14 @@ qd_iterator_pointer_t qd_message_cursor(qd_message_pvt_t *in_msg)
 
 void log_this(char *log_text, qd_message_pvt_t *msg, pn_link_t *pnl, pn_session_t *pns)
 {
-    qd_log(log_source, QD_LOG_CRITICAL, "HACK Link: %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s", log_obj_name_of(log_links, (void*)pnl), DEQ_SIZE(msg->content->buffers), pn_session_incoming_bytes(pns), pn_session_outgoing_bytes(pns), log_text);
+    qd_log(log_source, QD_LOG_CRITICAL, 
+           "%s %s, bufs: %d, incoming_bytes: %d, outgoing_bytes: %d. %s",
+           log_obj_name_of(log_msg_content, (void*)msg->content),
+           log_obj_name_of(log_links, (void*)pnl),
+           DEQ_SIZE(msg->content->buffers), 
+           pn_session_incoming_bytes(pns), 
+           pn_session_outgoing_bytes(pns), 
+           log_text);
 }
 
 
@@ -1125,8 +1132,9 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 
     //
     // If input is in holdoff then just exit. When enough buffers
-    // have been processed on the outbound side then the message may be
-    // unblocked.
+    // have been processed and freed on the outbound path(s) then the 
+    // message holdoff is cleared and receiving may continue.
+    //
     if (msg->content->input_holdoff) {
         log_this("qd_message_receive input_holdoff true - no bytes consumed", msg, link, pns);
         return (qd_message_t*)msg;
@@ -1230,7 +1238,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // the entire message.  We'll be back later to finish it up.
             // Return the message so that the caller can start sending out whatever we have received so far
             //
-            log_this("qd_message_receive exit: Received 0, no PN_EOS. More data coming soon.", msg, link, pns);
+            log_this("qd_message_receive exit: rcvd 0 bytes and no PN_EOS: more data coming soon.", msg, link, pns);
             return (qd_message_t*) msg;
         }
     }

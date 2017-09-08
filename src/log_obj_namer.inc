@@ -81,6 +81,7 @@ static log_obj_namers_t *log_sessions   = 0;
 static log_obj_namers_t *log_links      = 0;
 static log_obj_namers_t *log_linknames  = 0;
 static log_obj_namers_t *log_deliveries = 0;
+static log_obj_namers_t *log_msg_content= 0;
 
 
 void log_this_init(void) {
@@ -100,6 +101,7 @@ void log_this_init(void) {
     log_links      = log_obj_namers("link-");
     log_linknames  = log_obj_namers("linkname-");
     log_deliveries = log_obj_namers("dlvry-");
+    log_msg_content= log_obj_namers("content-");
 }
 
 
