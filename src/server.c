@@ -912,7 +912,7 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e) {
         break;
     } // Switch event type
 
-    log_event(e, "server handle EXUT");
+    log_event(e, "server handle EXIT");
 
     /* TODO aconway 2017-04-18: fold the container handler into the server */
     qd_container_handle_event(qd_server->container, e);

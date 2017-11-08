@@ -340,7 +340,7 @@ static void writable_handler(qd_container_t *container, pn_connection_t *conn, q
 
 void qd_container_handle_event(qd_container_t *container, pn_event_t *event)
 {
-    log_event(event, "ENTRY");
+    log_event(event, "qd_container_handle_event ENTRY");
     pn_connection_t *conn = pn_event_connection(event);
 
     if (!conn)
@@ -563,7 +563,7 @@ void qd_container_handle_event(qd_container_t *container, pn_event_t *event)
     default:
         break;
     }
-    log_event(event, "EXIT");
+    log_event(event, "qd_container_handle_event EXIT");
 }
 
 
