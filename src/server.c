@@ -686,8 +686,10 @@ static void invoke_deferred_calls(qd_connection_t *conn, bool discard)
 }
 
 void qd_container_handle_event(qd_container_t *container, pn_event_t *event);
+void log_event(pn_event_t *e, const char * text);
 
 static void handle_listener(pn_event_t *e, qd_server_t *qd_server) {
+    log_event(e, "server handle_listener ENTRY");
     qd_log_source_t *log = qd_server->log_source;
     qd_listener_t *li = (qd_listener_t*) pn_listener_get_context(pn_event_listener(e));
     const char *host_port = li->config.host_port;
@@ -723,6 +725,7 @@ static void handle_listener(pn_event_t *e, qd_server_t *qd_server) {
     default:
         break;
     }
+    log_event(e, "server handle_listener EXIT");
 }
 
 
@@ -826,6 +829,7 @@ static void startup_timer_handler(void *context)
  * only one event per connection / listener will be processed at a time.
  */
 static bool handle(qd_server_t *qd_server, pn_event_t *e) {
+    log_event(e, "server handle ENTRY");
     pn_connection_t *pn_conn = pn_event_connection(e);
     if (pn_conn && qdr_is_authentication_service_connection(pn_conn)) {
         qdr_handle_authentication_service_connection_event(e);
@@ -907,6 +911,8 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e) {
     default:
         break;
     } // Switch event type
+
+    log_event(e, "server handle EXUT");
 
     /* TODO aconway 2017-04-18: fold the container handler into the server */
     qd_container_handle_event(qd_server->container, e);

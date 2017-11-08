@@ -35,6 +35,9 @@
 #include <qpid/dispatch/iterator.h>
 #include <qpid/dispatch/log.h>
 
+#define MUTEX_SYS_MUTEX 1
+#include "log_obj_namer.inc"
+
 /** Instance of a node type in a container */
 struct qd_node_t {
     DEQ_LINKS(qd_node_t);
@@ -337,6 +340,7 @@ static void writable_handler(qd_container_t *container, pn_connection_t *conn, q
 
 void qd_container_handle_event(qd_container_t *container, pn_event_t *event)
 {
+    log_event(event, "ENTRY");
     pn_connection_t *conn = pn_event_connection(event);
 
     if (!conn)
@@ -559,11 +563,13 @@ void qd_container_handle_event(qd_container_t *container, pn_event_t *event)
     default:
         break;
     }
+    log_event(event, "EXIT");
 }
 
 
 qd_container_t *qd_container(qd_dispatch_t *qd)
 {
+    log_this_init();
     qd_container_t *container = NEW(qd_container_t);
 
     ZERO(container);
