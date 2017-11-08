@@ -1394,6 +1394,7 @@ static void compose_message_annotations(qd_message_pvt_t *msg, qd_buffer_list_t 
     }
 }
 
+const char * log_obj_find_name(const char *log_obj, void *ptr);
 
 void qd_message_send(qd_message_t *in_msg,
                      qd_link_t    *link,
@@ -1516,6 +1517,8 @@ void qd_message_send(qd_message_t *in_msg,
     pn_session_t     *pns  = pn_link_session(pnl);
 
     while (buf && pn_session_outgoing_bytes(pns) < QD_QLIMIT_Q3_UPPER) {
+        printf("Session %s: outgoing_bytes: %ld\n", 
+               log_obj_find_name("session", (void*)pns), pn_session_outgoing_bytes(pns));
 
         if (msg->content->aborted) {
             if (pn_link_current(pnl)) {
@@ -1595,6 +1598,9 @@ void qd_message_send(qd_message_t *in_msg,
         UNLOCK(msg->content->lock);
 
         buf = next_buf;
+    }
+    if (pn_session_outgoing_bytes(pns) >= QD_QLIMIT_Q3_UPPER) {
+        printf("session %s locked on Q3_UPPER\n", log_obj_find_name("session", (void*)pns));
     }
 }
 
