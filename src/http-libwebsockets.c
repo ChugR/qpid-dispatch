@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #include "http.h"
 #include "server_private.h"
