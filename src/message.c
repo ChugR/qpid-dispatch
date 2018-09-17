@@ -852,6 +852,7 @@ qd_message_t *qd_message()
 
     if (msg->content == 0) {
         free_qd_message_t((qd_message_t*) msg);
+        assert(false);
         return 0;
     }
 
@@ -880,10 +881,12 @@ void qd_message_free(qd_message_t *in_msg)
 
     rc = sys_atomic_dec(&content->ref_count) - 1;
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+    qd_log(log_source, QD_LOG_TRACE, "Message-        free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
 
     if (rc == 0) {
+        qd_log(log_source, QD_LOG_TRACE, "Message-content free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
         if (content->ma_field_iter_in)
             qd_iterator_free(content->ma_field_iter_in);
         if (content->ma_pf_ingress)
@@ -919,8 +922,10 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
     qd_message_content_t *content = msg->content;
     qd_message_pvt_t     *copy    = (qd_message_pvt_t*) new_qd_message_t();
 
-    if (!copy)
+    if (!copy) {
+        assert(false);
         return 0;
+    }
 
     DEQ_ITEM_INIT(copy);
     qd_buffer_list_clone(&copy->ma_to_override, &msg->ma_to_override);
