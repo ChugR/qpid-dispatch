@@ -644,6 +644,8 @@ static PyObject *qd_python_send(PyObject *self, PyObject *args)
 
     if (compose_python_message(&field, message, ioa->qd) == QD_ERROR_NONE) {
         qd_message_t *msg = qd_message();
+        qd_log(log_source, QD_LOG_TRACE, "Compose python msg   + msg: %16p",
+        (void*)msg);
         qd_message_compose_2(msg, field);
 
         qd_composed_field_t *ingress = qd_compose_subfield(0);
@@ -670,6 +672,8 @@ static PyObject *qd_python_send(PyObject *self, PyObject *args)
             Py_DECREF(address);
         }
         qd_compose_free(field);
+        qd_log(log_source, QD_LOG_TRACE, "Compose python msg   - msg: %16p",
+        (void*)msg);
         qd_message_free(msg);
         Py_RETURN_NONE;
     }
