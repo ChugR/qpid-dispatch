@@ -860,8 +860,8 @@ qd_message_t *qd_message()
     sys_atomic_init(&msg->content->ref_count, 1);
     msg->content->parse_depth = QD_DEPTH_NONE;
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content new  -  associate message %p with content %p ref_count=%d",
-        (void*)msg, (void*)msg->content, msg->content->ref_count);
+    qd_log(log_source, QD_LOG_TRACE, "Message-content new  + msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
     return (qd_message_t*) msg;
 }
 
@@ -880,8 +880,8 @@ void qd_message_free(qd_message_t *in_msg)
 
     rc = sys_atomic_dec(&content->ref_count) - 1;
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content free - dissociate message %p with content %p ref_count=%d",
-        (void*)in_msg, (void*)content, msg->content->ref_count);
+    qd_log(log_source, QD_LOG_TRACE, "Message-content free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
 
     if (rc == 0) {
         if (content->ma_field_iter_in)
@@ -941,8 +941,8 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     sys_atomic_inc(&content->ref_count);
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content copy -  associate message %p with content %p ref_count=%d",
-        (void*)copy, (void*)content, msg->content->ref_count);
+    qd_log(log_source, QD_LOG_TRACE, "Message-content copy + msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
 
     return (qd_message_t*) copy;
 }
