@@ -946,8 +946,8 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     sys_atomic_inc(&content->ref_count);
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content copy + msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
-        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
+    qd_log(log_source, QD_LOG_TRACE, "Message-content copy + msg: %16p cntnt: %16p copy: %16p refcnt=%d, fanout=%d",
+        (void*)msg, (void*)msg->content, (void*)copy, msg->content->ref_count, msg->content->fanout);
 
     return (qd_message_t*) copy;
 }
