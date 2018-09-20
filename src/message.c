@@ -1615,6 +1615,8 @@ void qd_message_send(qd_message_t *in_msg,
             msg->hack_bytes_sent += num_bytes_to_send;
             qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p send %5d bytes over link %16p",
                 (void*)msg, msg->hack_bytes_sent, (void*)pnl);
+            if (msg->hack_bytes_sent > 1650) // some magic number from the crolke-blue-green test scheme
+                assert(false); // This router has an issue with the input stream. Better check it.
         }
 
         // If the entire message has already been received,  taking out this lock is not that expensive

@@ -130,7 +130,7 @@ static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link
         if (dlv->settled && dlv->link_work && !dlv->link_work->processing && next) {
             DEQ_REMOVE(link->undelivered, dlv);
             dlv->where = QDR_DELIVERY_NOWHERE;
-
+            qd_log(core->log, QD_LOG_CRITICAL, "qdr_forward_drop_presettled_CT_LH removed dlv %16p from undelivered", (void*)dlv);
             //
             // The link-work item representing this pending delivery must be
             // updated to reflect the removal of the delivery.  If the item
