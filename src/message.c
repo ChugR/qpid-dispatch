@@ -902,6 +902,7 @@ qd_message_t *qd_message()
     msg->cursor.cursor = 0;
     msg->send_complete = false;
     msg->tag_sent      = false;
+    msg->hack_bytes_sent = 0;
 
     msg->content = new_qd_message_content_t();
 
@@ -1513,6 +1514,7 @@ void qd_message_send(qd_message_t *in_msg,
             buf    = content->section_message_header.buffer;
             cursor = content->section_message_header.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, header_consume, send_handler, (void*) pnl);
+            msg->hack_bytes_sent += header_consume;
         }
 
         //
@@ -1523,6 +1525,7 @@ void qd_message_send(qd_message_t *in_msg,
             buf    = content->section_delivery_annotation.buffer;
             cursor = content->section_delivery_annotation.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, da_consume, send_handler, (void*) pnl);
+            msg->hack_bytes_sent += da_consume;
         }
 
         //
@@ -1532,6 +1535,7 @@ void qd_message_send(qd_message_t *in_msg,
         while (da_buf) {
             char *to_send = (char*) qd_buffer_base(da_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(da_buf));
+            msg->hack_bytes_sent += qd_buffer_size(da_buf);
             da_buf = DEQ_NEXT(da_buf);
         }
         qd_buffer_list_free_buffers(&new_ma);
@@ -1545,6 +1549,7 @@ void qd_message_send(qd_message_t *in_msg,
             advance_guarded(&cursor2, &buf2,
                             content->field_user_annotations.length,
                             send_handler, (void*) pnl);
+            msg->hack_bytes_sent += content->field_user_annotations.length;
         }
 
         //
@@ -1554,6 +1559,7 @@ void qd_message_send(qd_message_t *in_msg,
         while (ta_buf) {
             char *to_send = (char*) qd_buffer_base(ta_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(ta_buf));
+            msg->hack_bytes_sent += qd_buffer_size(ta_buf);
             ta_buf = DEQ_NEXT(ta_buf);
         }
         qd_buffer_list_free_buffers(&new_ma_trailer);
@@ -1577,7 +1583,8 @@ void qd_message_send(qd_message_t *in_msg,
             msg->cursor.cursor = cursor;
 
         msg->sent_depth = QD_DEPTH_MESSAGE_ANNOTATIONS;
-
+        qd_log(log_source, QD_LOG_TRACE, "HDR  Msg: %16p send %5d bytes over link %16p",
+               (void*)msg, msg->hack_bytes_sent, (void*)pnl);
     }
 
     buf = msg->cursor.buffer;
@@ -1605,6 +1612,9 @@ void qd_message_send(qd_message_t *in_msg,
         if (num_bytes_to_send > 0) {
             // We are deliberately avoiding the return value of pn_link_send because we can't do anything nice with it.
             (void) pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
+            msg->hack_bytes_sent += num_bytes_to_send;
+            qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p send %5d bytes over link %16p",
+                (void*)msg, msg->hack_bytes_sent, (void*)pnl);
         }
 
         // If the entire message has already been received,  taking out this lock is not that expensive
@@ -1652,6 +1662,8 @@ void qd_message_send(qd_message_t *in_msg,
                 msg->cursor.buffer = 0;
                 msg->cursor.cursor = 0;
 
+                qd_log(log_source, QD_LOG_TRACE, "EOM  Msg: %16p sent %5d bytes over link %16p",
+                    (void*)msg, msg->hack_bytes_sent, (void*)pnl);
                 if (msg->content->aborted) {
                     pn_delivery_abort(pn_link_current(pnl));
                 }

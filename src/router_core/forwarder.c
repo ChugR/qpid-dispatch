@@ -86,7 +86,7 @@ qdr_delivery_t *qdr_forward_new_delivery_CT(qdr_core_t *core, qdr_delivery_t *in
     ZERO(out_dlv);
     out_dlv->link       = link;
     out_dlv->msg        = qd_message_copy(msg);
-    qd_log(core->log, QD_LOG_CRITICAL, "qdr_forward_new Message %16p copied to %16p and to delivery %16p", (void*)msg, (void*)out_dlv->msg, (void*)out_dlv);
+    qd_log(core->log, QD_LOG_TRACE, "qdr_forward_new Message %16p copied to %16p and to delivery %16p", (void*)msg, (void*)out_dlv->msg, (void*)out_dlv);
     out_dlv->settled    = !in_dlv || in_dlv->settled;
     out_dlv->presettled = out_dlv->settled;
     *tag                = core->next_tag++;
@@ -127,7 +127,7 @@ static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link
         // record that is being processed.  If it's being processed, it is
         // too late to drop the delivery.
         //
-        if (dlv->settled && dlv->link_work && !dlv->link_work->processing) {
+        if (dlv->settled && dlv->link_work && !dlv->link_work->processing && next) {
             DEQ_REMOVE(link->undelivered, dlv);
             dlv->where = QDR_DELIVERY_NOWHERE;
 
@@ -226,7 +226,7 @@ void qdr_forward_on_message_CT(qdr_core_t *core, qdr_subscription_t *sub, qdr_li
     work->on_message         = sub->on_message;
     work->on_message_context = sub->on_message_context;
     work->msg                = qd_message_copy(msg);
-    qd_log(core->log, QD_LOG_CRITICAL, "qdr_forward_on_message Message %16p copied to %16p and to work %16p", (void*)msg, (void*)work->msg, (void*)work);
+    qd_log(core->log, QD_LOG_TRACE, "qdr_forward_on_message Message %16p copied to %16p and to work %16p", (void*)msg, (void*)work->msg, (void*)work);
     work->maskbit            = link ? link->conn->mask_bit : 0;
     work->inter_router_cost  = link ? link->conn->inter_router_cost : 1;
     qdr_post_general_work_CT(core, work);
