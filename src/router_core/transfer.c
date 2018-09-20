@@ -1191,6 +1191,7 @@ static void qdr_deliver_continue_CT(qdr_core_t *core, qdr_action_t *action, bool
     //
     // If it is already in the undelivered list, don't try to deliver this again.
     //
+    qd_log(core->log, QD_LOG_CRITICAL, "qdr_deliver_continue_CT in_dlv = %16p, where = %d", (void*)in_dlv, (int)in_dlv->where);
     if (in_dlv->where == QDR_DELIVERY_IN_UNDELIVERED)
         return;
 
