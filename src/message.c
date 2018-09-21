@@ -917,7 +917,7 @@ qd_message_t *qd_message()
     sys_atomic_init(&msg->content->ref_count, 1);
     msg->content->parse_depth = QD_DEPTH_NONE;
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content new  + msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+    qd_log(log_source, QD_LOG_TRACE, "Msg: NEW %16p cntnt: %16p refcnt=%d, fanout=%d",
         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
     return (qd_message_t*) msg;
 }
@@ -937,11 +937,11 @@ void qd_message_free(qd_message_t *in_msg)
 
     rc = sys_atomic_dec(&content->ref_count) - 1;
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-        free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+    qd_log(log_source, QD_LOG_TRACE, "Msg: FREE%16p cntnt: %16p refcnt=%d, fanout=%d",
         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
 
     if (rc == 0) {
-        qd_log(log_source, QD_LOG_TRACE, "Message-content free - msg: %16p cntnt: %16p refcnt=%d, fanout=%d",
+        qd_log(log_source, QD_LOG_TRACE, "Msg: DEL: %16p cntnt: %16p refcnt=%d, fanout=%d content freed",
         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
         if (content->ma_field_iter_in)
             qd_iterator_free(content->ma_field_iter_in);
@@ -1003,8 +1003,8 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     sys_atomic_inc(&content->ref_count);
 
-    qd_log(log_source, QD_LOG_TRACE, "Message-content copy + msg: %16p cntnt: %16p copy: %16p refcnt=%d, fanout=%d",
-        (void*)msg, (void*)msg->content, (void*)copy, msg->content->ref_count, msg->content->fanout);
+    qd_log(log_source, QD_LOG_TRACE, "Msg: COPY%16p cntnt: %16p refcnt=%d, fanout=%d copy: %16p",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout, (void*)copy);
 
     return (qd_message_t*) copy;
 }
@@ -1469,7 +1469,9 @@ void qd_message_send(qd_message_t *in_msg,
                      qd_link_t    *link,
                      bool          strip_annotations,
                      bool         *restart_rx,
-                     bool         *q3_stalled)
+                     bool         *q3_stalled,
+                     void         *dlv
+                    )
 {
     qd_message_pvt_t     *msg     = (qd_message_pvt_t*) in_msg;
     qd_message_content_t *content = msg->content;
@@ -1583,8 +1585,8 @@ void qd_message_send(qd_message_t *in_msg,
             msg->cursor.cursor = cursor;
 
         msg->sent_depth = QD_DEPTH_MESSAGE_ANNOTATIONS;
-        qd_log(log_source, QD_LOG_TRACE, "HDR  Msg: %16p send %5d bytes over link %16p",
-               (void*)msg, msg->hack_bytes_sent, (void*)pnl);
+        qd_log(log_source, QD_LOG_TRACE, "HDR  Msg: %16p cntnt: %16p link: %16p dlv: %16p Tx %5d bytes",
+               (void*)msg, (void*)content, (void*)pnl, (void*)dlv, msg->hack_bytes_sent);
     }
 
     buf = msg->cursor.buffer;
@@ -1613,8 +1615,8 @@ void qd_message_send(qd_message_t *in_msg,
             // We are deliberately avoiding the return value of pn_link_send because we can't do anything nice with it.
             (void) pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
             msg->hack_bytes_sent += num_bytes_to_send;
-            qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p send %5d bytes over link %16p",
-                (void*)msg, msg->hack_bytes_sent, (void*)pnl);
+            qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p cntnt: %16p link: %16p dlv: %16p Tx %5d bytes buf: %16p",
+                (void*)msg, (void*)content, (void*)pnl, (void*)dlv, msg->hack_bytes_sent, (void*)buf);
             if (msg->hack_bytes_sent > 1650) // some magic number from the crolke-blue-green test scheme
                 assert(false); // This router has an issue with the input stream. Better check it.
         }
@@ -1631,6 +1633,8 @@ void qd_message_send(qd_message_t *in_msg,
                 qd_buffer_t *local_buf = DEQ_HEAD(content->buffers);
                 while (local_buf && local_buf != next_buf) {
                     DEQ_REMOVE_HEAD(content->buffers);
+                    qd_log(log_source, QD_LOG_TRACE, "BFRE Msg: %16p cntnt: %16p link: %16p dlv: %16p Free buf %16p",
+                        (void*)msg, (void*)content, (void*)pnl, (void*)dlv, (void*)local_buf);
                     qd_buffer_free(local_buf);
                     local_buf = DEQ_HEAD(content->buffers);
 
@@ -1664,8 +1668,8 @@ void qd_message_send(qd_message_t *in_msg,
                 msg->cursor.buffer = 0;
                 msg->cursor.cursor = 0;
 
-                qd_log(log_source, QD_LOG_TRACE, "EOM  Msg: %16p sent %5d bytes over link %16p",
-                    (void*)msg, msg->hack_bytes_sent, (void*)pnl);
+                qd_log(log_source, QD_LOG_TRACE, "EOM  Msg: %16p cntnt: %16p link: %16p dlv: %16p Tx %5d bytes",
+                    (void*)msg, (void*)content, (void*)pnl, (void*)dlv, msg->hack_bytes_sent);
                 if (msg->content->aborted) {
                     pn_delivery_abort(pn_link_current(pnl));
                 }
