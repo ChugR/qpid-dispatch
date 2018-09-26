@@ -1527,6 +1527,7 @@ void qd_message_send(qd_message_t *in_msg,
         qd_buffer_list_t new_ma_trailer;
         DEQ_INIT(new_ma);
         DEQ_INIT(new_ma_trailer);
+        msg->hack_bytes_sent = 0;
 
         // Process  the message annotations if any
         compose_message_annotations(msg, &new_ma, &new_ma_trailer, strip_annotations);
@@ -1547,6 +1548,7 @@ void qd_message_send(qd_message_t *in_msg,
             cursor = content->section_message_header.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, header_consume, send_handler, (void*) pnl);
             msg->hack_bytes_sent += header_consume;
+            assert(msg->hack_bytes_sent < 1000);
         }
 
         //
@@ -1558,6 +1560,7 @@ void qd_message_send(qd_message_t *in_msg,
             cursor = content->section_delivery_annotation.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, da_consume, send_handler, (void*) pnl);
             msg->hack_bytes_sent += da_consume;
+            assert(msg->hack_bytes_sent < 1000);
         }
 
         //
@@ -1568,6 +1571,7 @@ void qd_message_send(qd_message_t *in_msg,
             char *to_send = (char*) qd_buffer_base(da_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(da_buf));
             msg->hack_bytes_sent += qd_buffer_size(da_buf);
+            assert(msg->hack_bytes_sent < 1000);
             da_buf = DEQ_NEXT(da_buf);
         }
         qd_buffer_list_free_buffers(&new_ma);
@@ -1582,6 +1586,7 @@ void qd_message_send(qd_message_t *in_msg,
                             content->field_user_annotations.length,
                             send_handler, (void*) pnl);
             msg->hack_bytes_sent += content->field_user_annotations.length;
+            assert(msg->hack_bytes_sent < 1000);
         }
 
         //
@@ -1592,6 +1597,7 @@ void qd_message_send(qd_message_t *in_msg,
             char *to_send = (char*) qd_buffer_base(ta_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(ta_buf));
             msg->hack_bytes_sent += qd_buffer_size(ta_buf);
+            assert(msg->hack_bytes_sent < 1000);
             ta_buf = DEQ_NEXT(ta_buf);
         }
         qd_buffer_list_free_buffers(&new_ma_trailer);
@@ -1649,7 +1655,7 @@ void qd_message_send(qd_message_t *in_msg,
             msg->hack_bytes_sent += num_bytes_to_send;
             qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p cntnt: %16p link: %16p Tx %5d bytes buf: %16p",
                 (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent, (void*)buf);
-            if (msg->hack_bytes_sent > 1650) // some magic number from the crolke-blue-green test scheme
+            if (msg->hack_bytes_sent > 3000) // some magic number from the crolke-blue-green test - increase for sheafs?
                 assert(false); // This router has an issue. Better check it.
         }
 
