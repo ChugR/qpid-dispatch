@@ -129,6 +129,7 @@ typedef struct {
     qd_buffer_list_t      ma_trace;        // trace list in outgoing message annotations
     qd_buffer_list_t      ma_ingress;      // ingress field in outgoing message annotations
     int                   ma_phase;        // phase for the override address
+    int                   hack_bytes_sent;
     bool                  strip_annotations_in;
     bool                  send_complete;   // Has the message been completely received and completely sent?
     bool                  tag_sent;        // Tags are sent

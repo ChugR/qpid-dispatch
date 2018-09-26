@@ -868,6 +868,7 @@ qd_message_t *qd_message()
     msg->cursor.cursor = 0;
     msg->send_complete = false;
     msg->tag_sent      = false;
+    msg->hack_bytes_sent = 0;
 
     msg->content = new_qd_message_content_t();
 
@@ -881,6 +882,8 @@ qd_message_t *qd_message()
     sys_atomic_init(&msg->content->ref_count, 1);
     msg->content->parse_depth = QD_DEPTH_NONE;
 
+    qd_log(log_source, QD_LOG_TRACE, "Msg: NEW %16p cntnt: %16p refcnt=%d, fanout=%d",
+         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
     return (qd_message_t*) msg;
 }
 
@@ -899,7 +902,12 @@ void qd_message_free(qd_message_t *in_msg)
 
     rc = sys_atomic_dec(&content->ref_count) - 1;
 
+    qd_log(log_source, QD_LOG_TRACE, "Msg: FREE%16p cntnt: %16p refcnt=%d, fanout=%d",
+         (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
+
     if (rc == 0) {
+        qd_log(log_source, QD_LOG_TRACE, "Msg: DEL: %16p cntnt: %16p refcnt=%d, fanout=%d content freed",
+            (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
         if (content->ma_field_iter_in)
             qd_iterator_free(content->ma_field_iter_in);
         if (content->ma_pf_ingress)
@@ -957,6 +965,8 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     sys_atomic_inc(&content->ref_count);
 
+    qd_log(log_source, QD_LOG_TRACE, "Msg: COPY%16p cntnt: %16p refcnt=%d, fanout=%d copy: %16p",
+        (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout, (void*)copy);
     return (qd_message_t*) copy;
 }
 
@@ -1477,6 +1487,7 @@ void qd_message_send(qd_message_t *in_msg,
             buf    = content->section_message_header.buffer;
             cursor = content->section_message_header.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, header_consume, send_handler, (void*) pnl);
+            msg->hack_bytes_sent += header_consume;
         }
 
         //
@@ -1487,6 +1498,7 @@ void qd_message_send(qd_message_t *in_msg,
             buf    = content->section_delivery_annotation.buffer;
             cursor = content->section_delivery_annotation.offset + qd_buffer_base(buf);
             advance_guarded(&cursor, &buf, da_consume, send_handler, (void*) pnl);
+            msg->hack_bytes_sent += da_consume;
         }
 
         //
@@ -1496,6 +1508,7 @@ void qd_message_send(qd_message_t *in_msg,
         while (da_buf) {
             char *to_send = (char*) qd_buffer_base(da_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(da_buf));
+            msg->hack_bytes_sent += qd_buffer_size(da_buf);
             da_buf = DEQ_NEXT(da_buf);
         }
         qd_buffer_list_free_buffers(&new_ma);
@@ -1509,6 +1522,7 @@ void qd_message_send(qd_message_t *in_msg,
             advance_guarded(&cursor2, &buf2,
                             content->field_user_annotations.length,
                             send_handler, (void*) pnl);
+            msg->hack_bytes_sent += content->field_user_annotations.length;
         }
 
         //
@@ -1518,6 +1532,7 @@ void qd_message_send(qd_message_t *in_msg,
         while (ta_buf) {
             char *to_send = (char*) qd_buffer_base(ta_buf);
             pn_link_send(pnl, to_send, qd_buffer_size(ta_buf));
+            msg->hack_bytes_sent += qd_buffer_size(ta_buf);
             ta_buf = DEQ_NEXT(ta_buf);
         }
         qd_buffer_list_free_buffers(&new_ma_trailer);
@@ -1527,8 +1542,10 @@ void qd_message_send(qd_message_t *in_msg,
         // Skip over replaced message annotations
         //
         int ma_consume = content->section_message_annotation.hdr_length + content->section_message_annotation.length;
-        if (content->section_message_annotation.length > 0)
+        if (content->section_message_annotation.length > 0) {
             advance_guarded(&cursor, &buf, ma_consume, 0, 0);
+            msg->hack_bytes_sent += ma_consume;
+        }
 
         msg->cursor.buffer = buf;
 
@@ -1541,6 +1558,8 @@ void qd_message_send(qd_message_t *in_msg,
             msg->cursor.cursor = cursor;
 
         msg->sent_depth = QD_DEPTH_MESSAGE_ANNOTATIONS;
+        qd_log(log_source, QD_LOG_TRACE, "HDR  Msg: %16p cntnt: %16p link: %16p Tx %5d bytes",
+               (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent);
 
     }
 
@@ -1569,6 +1588,10 @@ void qd_message_send(qd_message_t *in_msg,
         if (num_bytes_to_send > 0) {
             // We are deliberately avoiding the return value of pn_link_send because we can't do anything nice with it.
             (void) pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
+            qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p cntnt: %16p link: %16p Tx %5d bytes buf: %16p",
+                (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent, (void*)buf);
+            if (msg->hack_bytes_sent > 1650) // some magic number from the crolke-blue-green test scheme
+                assert(false); // This router has an issue. Better check it.
         }
 
         // If the entire message has already been received,  taking out this lock is not that expensive
@@ -1583,6 +1606,8 @@ void qd_message_send(qd_message_t *in_msg,
                 qd_buffer_t *local_buf = DEQ_HEAD(content->buffers);
                 while (local_buf && local_buf != next_buf) {
                     DEQ_REMOVE_HEAD(content->buffers);
+                    qd_log(log_source, QD_LOG_TRACE, "BFRE Msg: %16p cntnt: %16p link: %16p Free buf %16p",
+                        (void*)msg, (void*)content, (void*)pnl, (void*)local_buf);
                     qd_buffer_free(local_buf);
                     if (!msg->content->buffers_freed)
                         msg->content->buffers_freed = true;
@@ -1619,6 +1644,8 @@ void qd_message_send(qd_message_t *in_msg,
                 msg->cursor.buffer = 0;
                 msg->cursor.cursor = 0;
 
+                qd_log(log_source, QD_LOG_TRACE, "EOM  Msg: %16p cntnt: %16p link: %16p Tx %5d bytes",
+                    (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent);
                 if (msg->content->aborted) {
                     pn_delivery_abort(pn_link_current(pnl));
                 }
