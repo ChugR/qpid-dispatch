@@ -941,7 +941,7 @@ void qd_message_free(qd_message_t *in_msg)
          (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
 
     if (rc == 0) {
-        qd_log(log_source, QD_LOG_TRACE, "Msg: DEL: %16p cntnt: %16p refcnt=%d, fanout=%d content freed",
+        qd_log(log_source, QD_LOG_TRACE, "Msg: DEL:%16p cntnt: %16p refcnt=%d, fanout=%d content freed",
             (void*)msg, (void*)msg->content, msg->content->ref_count, msg->content->fanout);
         if (content->ma_field_iter_in)
             qd_iterator_free(content->ma_field_iter_in);
@@ -996,6 +996,7 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
     copy->cursor.cursor = 0;
     copy->send_complete = false;
     copy->tag_sent      = false;
+    msg->hack_bytes_sent = 0;
 
     qd_message_message_annotations((qd_message_t*) copy);
 
@@ -1602,7 +1603,6 @@ void qd_message_send(qd_message_t *in_msg,
         int ma_consume = content->section_message_annotation.hdr_length + content->section_message_annotation.length;
         if (content->section_message_annotation.length > 0) {
             advance_guarded(&cursor, &buf, ma_consume, 0, 0);
-            msg->hack_bytes_sent += ma_consume;
         }
 
         msg->cursor.buffer = buf;
@@ -1646,6 +1646,7 @@ void qd_message_send(qd_message_t *in_msg,
         if (num_bytes_to_send > 0) {
             // We are deliberately avoiding the return value of pn_link_send because we can't do anything nice with it.
             (void) pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
+            msg->hack_bytes_sent += num_bytes_to_send;
             qd_log(log_source, QD_LOG_TRACE, "DATA Msg: %16p cntnt: %16p link: %16p Tx %5d bytes buf: %16p",
                 (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent, (void*)buf);
             if (msg->hack_bytes_sent > 1650) // some magic number from the crolke-blue-green test scheme
