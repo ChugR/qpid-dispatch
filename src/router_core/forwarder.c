@@ -254,6 +254,8 @@ int qdr_forward_multicast_CT(qdr_core_t      *core,
     qd_bitmask_t *link_exclusion       = !!in_delivery ? in_delivery->link_exclusion : 0;
     bool          presettled           = !!in_delivery ? in_delivery->settled : true;
     bool          receive_complete     = qd_message_receive_complete(qdr_delivery_message(in_delivery));
+    qdr_forward_deliver_info_list_t deliver_info_list;
+    DEQ_INIT(deliver_info_list);
 
     //
     // If the delivery is not presettled, set the settled flag for forwarding so all
