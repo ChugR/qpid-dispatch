@@ -1188,6 +1188,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         msg = (qd_message_pvt_t*) qd_message();
         qd_log(log_source, QD_LOG_TRACE, "RX NEW  Msg: %16p cntnt: %16p",
             (void*)msg, (void*)msg->content);
+        msg->hack_bytes_rcvd = 0;
         qd_link_t       *qdl = (qd_link_t *)pn_link_get_context(link);
         qd_connection_t *qdc = qd_link_connection(qdl);
         msg->content->input_link = pn_link_get_context(link);
@@ -1233,8 +1234,9 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 if (msg->content->pending) {
                     if (qd_buffer_size(msg->content->pending) > 0) {
                         // pending buffer has bytes that are port of message
+                        msg->hack_bytes_rcvd += qd_buffer_size(msg->content->pending);
                         qd_log(log_source, QD_LOG_TRACE, "RX DATA Msg: %16p cntnt: %16p Rx %5d bytes buf: %16p",
-                            (void*)msg, (void*)msg->content, qd_buffer_size(msg->content->pending), (void*)msg->content->pending);
+                            (void*)msg, (void*)msg->content, msg->hack_bytes_rcvd, (void*)msg->content->pending);
                         DEQ_INSERT_TAIL(msg->content->buffers,
                                         msg->content->pending);
                     } else {
@@ -1267,8 +1269,9 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // Pending buffer exists
             if (qd_buffer_capacity(msg->content->pending) == 0) {
                 // Pending buffer is full
+                msg->hack_bytes_rcvd += qd_buffer_size(msg->content->pending);
                 qd_log(log_source, QD_LOG_TRACE, "RX DATA Msg: %16p cntnt: %16p Rx %5d bytes buf: %16p",
-                    (void*)msg, (void*)msg->content, qd_buffer_size(msg->content->pending), (void*)msg->content->pending);
+                    (void*)msg, (void*)msg->content, msg->hack_bytes_rcvd, (void*)msg->content->pending);
                 LOCK(msg->content->lock);
                 DEQ_INSERT_TAIL(msg->content->buffers, msg->content->pending);
                 msg->content->pending = 0;
