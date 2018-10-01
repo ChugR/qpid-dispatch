@@ -140,7 +140,8 @@ static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link
         //
         if (dlv->settled && dlv->link_work && !dlv->link_work->processing && next) {
             qd_message_pvt_t * msg = (qd_message_pvt_t *)dlv->msg;
-            qd_log(core->log, QD_LOG_CRITICAL, "Drop presettled - msg: %16p, cntnt: %16p, dlv: %16p", (void*)msg, (void*)msg->content, (void*)dlv);
+            qd_log(core->log, QD_LOG_DEBUG, "Drop presettled - msg: %16p, cntnt: %16p, dlv: %16p", (void*)msg, (void*)msg->content, (void*)dlv);
+            assert(msg->hack_bytes_sent == 0);  // Dropping a message that is being sent. That's not right, I don't think.
             DEQ_REMOVE(link->undelivered, dlv);
             dlv->where = QDR_DELIVERY_NOWHERE;
 
