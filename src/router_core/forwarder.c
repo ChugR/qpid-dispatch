@@ -128,7 +128,11 @@ qdr_delivery_t *qdr_forward_new_delivery_CT(qdr_core_t *core, qdr_delivery_t *in
 static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link)
 {
     qdr_delivery_t *dlv = DEQ_HEAD(link->undelivered);
+    if (!dlv)
+        return;
+
     qdr_delivery_t *next;
+    dlv = DEQ_NEXT(dlv);    // skip leading delivery which may be in progress
 
     while (dlv) {
         next = DEQ_NEXT(dlv);
