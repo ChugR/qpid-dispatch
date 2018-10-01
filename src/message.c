@@ -856,7 +856,7 @@ qd_message_t *qd_message()
     qd_message_pvt_t *msg = (qd_message_pvt_t*) new_qd_message_t();
     if (!msg)
         return 0;
-
+    ZERO(msg);
     DEQ_ITEM_INIT(msg);
     DEQ_INIT(msg->ma_to_override);
     DEQ_INIT(msg->ma_trace);
@@ -945,7 +945,7 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     if (!copy)
         return 0;
-
+    ZERO(copy);
     DEQ_ITEM_INIT(copy);
     qd_buffer_list_clone(&copy->ma_to_override, &msg->ma_to_override);
     qd_buffer_list_clone(&copy->ma_trace, &msg->ma_trace);
