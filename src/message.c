@@ -1452,7 +1452,9 @@ void qd_message_send(qd_message_t *in_msg,
                      qd_link_t    *link,
                      bool          strip_annotations,
                      bool         *restart_rx,
-                     bool         *q3_stalled)
+                     bool         *q3_stalled,
+                     void         *dlv
+                    )
 {
     qd_message_pvt_t     *msg     = (qd_message_pvt_t*) in_msg;
     qd_message_content_t *content = msg->content;
@@ -1573,8 +1575,8 @@ void qd_message_send(qd_message_t *in_msg,
             msg->cursor.cursor = cursor;
 
         msg->sent_depth = QD_DEPTH_MESSAGE_ANNOTATIONS;
-        qd_log(log_source, QD_LOG_TRACE, "HDR  Msg: %16p cntnt: %16p link: %16p Tx %5d bytes",
-               (void*)msg, (void*)content, (void*)pnl, msg->hack_bytes_sent);
+        qd_log(log_source, QD_LOG_DEBUG, "HDR  Msg: %16p cntnt: %16p link: %16p dlv: %16p Tx %5d bytes",
+               (void*)msg, (void*)content, (void*)pnl, dlv, msg->hack_bytes_sent);
 
     }
 
