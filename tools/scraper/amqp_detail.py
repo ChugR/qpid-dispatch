@@ -44,6 +44,53 @@ how long it took for the transfer to reach router B. Similarly
 router B's details could show how long ago router A sent the transfer. 
 """
 
+class Counts():
+    """
+    Holds common count sets that can be rolled up from links to
+    sessions to connections. Not for individual performatives.
+    """
+    def __init__(self):
+        # amqp errors gleaned from any performative
+        self.errors = 0    # amqp error - simple count
+        # derived facts about message settlement
+        self.unsettled = 0
+        self.accepted = 0
+        self.rejected = 0
+        self.released = 0
+        self.modified = 0
+        # interesting transfers
+        self.aborted = 0
+        self.more = 0
+        # link drained
+        self.drained = 0
+        # link out of credit
+        self.no_credit = 0 # event count, excludes drain credit exhaustion
+        self.no_credit_duration = None
+
+    def highlight(self, name, value, color):
+        """
+        if value is non zero then return a colorized 'name: value' text stream
+        else return a blank string
+        """
+        result = ""
+        if value:
+            result = "<span style=\"background-color:%s\">%s: %s</span> " % (color, name, str(value))
+        return result
+
+    def show_html(self):
+        res = ""
+        res += self.highlight("errors", self.errors, "yellow")
+        res += self.highlight("unsettled", self.unsettled, "orange")
+        res += self.highlight("accepted", self.accepted, "orange")
+        res += self.highlight("rejected", self.rejected, "orange")
+        res += self.highlight("released", self.released, "orange")
+        res += self.highlight("modified", self.modified, "orange")
+        res += self.highlight("aborted", self.aborted, "crimson")
+        res += self.highlight("more", self.more, "chartreuse")
+        res += self.highlight("drained", self.drained, "gold")
+        res += self.highlight("no_credit", self.no_credit, "indianred")
+        return res
+
 
 class ConnectionDetail():
     """
@@ -63,11 +110,8 @@ class ConnectionDetail():
         # with local channel 0.
         self.seq_no = 0
 
-        # combined amqp_error frames on this connection
-        self.amqp_errors = 0
-
-        # unsettled transfer count
-        self.unsettled = 0
+        # combined counts
+        self.counts = Counts()
 
         # session_list holds all SessionDetail records either active or retired
         # Sessions for a connection are identified by the local channel number.
@@ -127,9 +171,8 @@ class SessionDetail:
         self.time_start = start_time
         self.time_end = start_time
 
-        self.amqp_errors = 0
-
-        self.unsettled = 0
+        # combined counts
+        self.counts = Counts()
 
         self.channel = -1
         self.peer_chan = -1
@@ -270,9 +313,9 @@ class LinkDetail():
         self.time_start = start_time
         self.time_end = start_time
 
-        self.amqp_errors = 0
+        # combined counts
+        self.counts = Counts()
 
-        self.unsettled = 0
         self.unsettled_list = []
 
 
@@ -404,7 +447,7 @@ class AllDetails():
                         if transfer.data.transfer_more:
                             result = "(pending)"
                         else:
-                            result = "receive settlement absent"
+                            result = "<span style=\"background-color:orange\">%s</span>" % "receive settlement absent"
                 else:
                     # two settlements expected
                     if transfer.data.transfer_more:
@@ -414,13 +457,13 @@ class AllDetails():
                         if snd_disposition is not None:
                             result += ", sender: " + stext
                         else:
-                            result += ", sender settlement absent"
+                            result += "<span style=\"background-color:orange\">%s</span>" % ", sender settlement absent"
                     else:
-                        result = "receiver settlement absent"
+                        result = "<span style=\"background-color:orange\">%s</span>" % "receiver settlement absent"
                         if snd_disposition is not None:
                             result += ", sender: " + stext
                         else:
-                            result += ", sender settlement absent"
+                            result += "<span style=\"background-color:orange\">%s</span>" % ", sender settlement absent"
         return result
 
     def __init__(self, _router, _common):
@@ -442,7 +485,7 @@ class AllDetails():
             for plf in conn_frames:
                 pname = plf.data.name
                 if plf.data.amqp_error:
-                    conn_details.amqp_errors += 1
+                    conn_details.counts.errors += 1
                 if pname in ['', 'open', 'close']:
                     conn_details.unaccounted_frame_list.append(plf)
                     continue
@@ -458,7 +501,7 @@ class AllDetails():
                     sess_details.direction = plf.data.direction
                     sess_details.channel = channel
                 if plf.data.amqp_error:
-                    sess_details.amqp_errors += 1
+                    sess_details.counts.errors += 1
 
                 if pname in ['begin', 'end', 'disposition']:
                     sess_details.session_frame_list.append(plf) # Accumulate to current session
@@ -479,8 +522,8 @@ class AllDetails():
                     nl = sess_details.FindLinkByName(link_name, link_name_unambiguous, plf)
                     # if finding an ambiguous link name generated an error then propagate to session/connection
                     if not error_was and plf.data.amqp_error:
-                        conn_details.amqp_errors += 1
-                        sess_details.amqp_errors += 1
+                        conn_details.counts.errors += 1
+                        sess_details.counts.errors += 1
                     if nl is None:
                         # Creating a new link from scratch resulting in a half attached link pair
                         new_id = len(sess_details.link_list)
@@ -493,7 +536,7 @@ class AllDetails():
                         nl.is_receiver = plf.data.role == "receiver"
                         nl.first_address = plf.data.source if nl.is_receiver else plf.data.target
                     if plf.data.amqp_error:
-                        nl.amqp_errors += 1
+                        nl.counts.errors += 1
 
                     if plf.data.direction_is_in():
                         # peer is creating link
@@ -527,7 +570,7 @@ class AllDetails():
                         ns.session_frame_list.append(plf)
                     else:
                         if plf.data.amqp_error:
-                            nl.amqp_errors += 1
+                            nl.counts.errors += 1
                         nl.frame_list.append(plf)
 
                 elif pname in ['transfer', 'flow']:
@@ -543,7 +586,7 @@ class AllDetails():
                         plf.no_parent_link = True
                     else:
                         if plf.data.amqp_error:
-                            nl.amqp_errors += 1
+                            nl.counts.errors += 1
                         nl.frame_list.append(plf)
         # identify and index dispositions
         for conn in self.rtr.conn_list:
@@ -585,9 +628,9 @@ class AllDetails():
                             if common.transfer_is_possibly_unsettled(plf):
                                 if tdid not in link.unsettled_list:
                                     link.unsettled_list.append(tdid)
-                                    link.unsettled += 1
-                                    sess.unsettled += 1
-                                    conn_detail.unsettled += 1
+                                    link.counts.unsettled += 1
+                                    sess.counts.unsettled += 1
+                                    conn_detail.counts.unsettled += 1
 
     def index_addresses(self):
         for conn in self.rtr.conn_list:
@@ -610,9 +653,8 @@ class AllDetails():
             peer = self.rtr.conn_peer_display.get(id, "")  # peer container id
             peerconnid = self.comn.conn_peers_connid.get(id, "")
             # show the connection title
-            print("%s %s %s %s (nFrames=%d) %s %s<br>" % \
-                  (id, dir, peerconnid, peer, len(conn_frames), self.format_errors(conn_detail.amqp_errors),
-                   self.format_unsettled(conn_detail.unsettled)))
+            print("%s %s %s %s (nFrames=%d) %s<br>" % \
+                  (id, dir, peerconnid, peer, len(conn_frames), conn_detail.counts.show_html()))
             # data div
             print("<div id=\"%s_data\" style=\"display:none; margin-bottom: 2px; margin-left: 10px\">" % id)
 
@@ -632,10 +674,9 @@ class AllDetails():
                 # show the session 'toggle goto' and title
                 print("<a href=\"javascript:toggle_node('%s_sess_%s')\">%s%s</a>" %
                       (id, sess.conn_epoch, text.lozenge(), text.nbsp()))
-                print("Session %s: channel: %s, peer channel: %s; Time: start %s, Counts: frames: %d %s %s<br>" % \
+                print("Session %s: channel: %s, peer channel: %s; Time: start %s, Counts: frames: %d %s<br>" % \
                       (sess.conn_epoch, sess.channel, sess.peer_chan, sess.time_start, \
-                       sess.FrameCount(), self.format_errors(sess.amqp_errors),
-                       self.format_unsettled(sess.unsettled)))
+                       sess.FrameCount(), sess.counts.show_html()))
                 print("<div id=\"%s_sess_%s\" style=\"display:none; margin-bottom: 2px; margin-left: 10px\">" %
                       (id, sess.conn_epoch))
                 # show the session-level frames
@@ -653,7 +694,7 @@ class AllDetails():
                 print("<table")
                 print("<tr><th>Link</th> <th>Dir</th> <th>Role</th>  <th>Address</th>  <th>Class</th>  "
                       "<th>snd-settle-mode</th>  <th>rcv-settle-mode</th>  <th>Start time</th>  <th>Frames</th> "
-                      "<th>AMQP errors</th> <th>Unsettled</th> </tr>")
+                      "<th>Counts</th> </tr>")
                 for link in sess.link_list:
                     # show the link toggle and title
                     showthis = ("<a href=\"javascript:toggle_node('%s_sess_%s_link_%s')\">%s</a>" %
@@ -662,12 +703,11 @@ class AllDetails():
                                 (id, sess.conn_epoch, link.session_seq, link.display_name))
                     role = "receiver" if link.is_receiver else "sender"
                     print("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-                          "<td>%s</td><td>%d</td><td>%s</td> <td>%s</td></tr>" % \
+                          "<td>%s</td><td>%d</td><td>%s</td> </tr>" % \
                           (showthis, visitthis, link.direction, role, link.first_address,
                            (link.sender_class + '-' + link.receiver_class), link.snd_settle_mode,
                            link.rcv_settle_mode, link.time_start, link.FrameCount(),
-                           self.format_errors(link.amqp_errors),
-                           self.format_unsettled(link.unsettled)))
+                           link.counts.show_html()))
                 print("</table>")
                 # second loop prints the link's frames
                 for link in sess.link_list:

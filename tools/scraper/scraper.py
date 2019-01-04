@@ -392,7 +392,7 @@ def main_except(argv):
                 print("<td>%s</td><td><a href=\"#cd_%s\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                       "<td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%s</td><td>%s</td></tr>" %
                       (rid, id, id, rtr.conn_dir[id], peerconnid, peer, rtr.conn_log_lines[id], n_links,
-                       rtr.conn_xfer_bytes[id], errs, conn_details.unsettled, stime, etime))
+                       rtr.conn_xfer_bytes[id], errs, conn_details.counts.unsettled, stime, etime))
                 tLines += rtr.conn_log_lines[id]
                 tBytes += rtr.conn_xfer_bytes[id]
     print(
@@ -461,7 +461,7 @@ def main_except(argv):
         n_transfers = 0
         for linkd in links:
             n_transfers += sum(1 for plf in linkd.frame_list if plf.data.transfer)
-        n_unsettled = sum(linkd.unsettled for linkd in links)
+        n_unsettled = sum(linkd.counts.unsettled for linkd in links)
         line = ("<tr><td>%s %s</td> <td>%d</td> <td>%d</td> <td>%d</td> <td>%d</td></tr>" %
                 (showthis, visitthis, len(links), n_frames, n_transfers, n_unsettled))
         if n_transfers == 0:
@@ -510,7 +510,7 @@ def main_except(argv):
             visitthis = ("<a href=\"#%s_sess_%s_link_%s_data\">%s</a>" %
                          (id, sessd.conn_epoch, linkd.session_seq, linkd.display_name))
             print("<tr> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s %s</td> <td>%d</td> <td>%d</td> <td>%d</td> </tr>" %
-                  (rid, id, rtr.conn_dir[id], peerconnid, peer, role, showall, visitthis, len(linkd.frame_list), transfers, linkd.unsettled))
+                  (rid, id, rtr.conn_dir[id], peerconnid, peer, role, showall, visitthis, len(linkd.frame_list), transfers, linkd.counts.unsettled))
         print("</table>")
         print("</div>")
     print("<hr>")
