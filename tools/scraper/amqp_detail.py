@@ -63,7 +63,7 @@ class Counts():
         self.aborted = 0
         self.more = 0
         # link drained
-        self.drained = 0
+        self.drain = 0
         # link out of credit
         self.no_credit = 0 # event count, excludes drain credit exhaustion
         self.no_credit_duration = None
@@ -89,7 +89,7 @@ class Counts():
         res += self.highlight("modified", self.modified, "orange")
         res += self.highlight("aborted", self.aborted, "crimson")
         res += self.highlight("more", self.more, "chartreuse")
-        res += self.highlight("drained", self.drained, "gold")
+        res += self.highlight("drain", self.drain, "gold")
         res += self.highlight("no_credit", self.no_credit, "indianred")
         return res
 
@@ -122,7 +122,7 @@ class Counts():
         res += self.show_table_element("modified", self.modified, "orange")
         res += self.show_table_element("aborted", self.aborted, "crimson")
         res += self.show_table_element("more", self.more, "chartreuse")
-        res += self.show_table_element("drained", self.drained, "gold")
+        res += self.show_table_element("drain", self.drain, "gold")
         res += self.show_table_element("no_credit", self.no_credit, "indianred")
         return res
 
@@ -700,6 +700,18 @@ class AllDetails():
                                     else:
                                         self.rollup_disposition_counts(
                                             plf.data.final_disposition.data.disposition_state, conn_detail.counts, sess.counts, link.counts)
+                                else:
+                                    link.counts.more += 1
+                                    sess.counts.more += 1
+                                    conn_detail.counts.more += 1
+                            if plf.data.transfer_aborted:
+                                link.counts.aborted += 1
+                                sess.counts.aborted += 1
+                                conn_detail.counts.aborted += 1
+                        if plf.data.flow_drain:
+                            link.counts.drain += 1
+                            sess.counts.drain += 1
+                            conn_detail.counts.drain += 1
 
     def index_addresses(self):
         for conn in self.rtr.conn_list:
