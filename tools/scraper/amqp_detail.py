@@ -80,17 +80,17 @@ class Counts():
 
     def show_html(self):
         res = ""
-        res += self.highlight("errors", self.errors, "yellow")
-        res += self.highlight("unsettled", self.unsettled, "tomato")
-        res += self.highlight("presettled", self.presettled, "aqua")
-        res += self.highlight("accepted", self.accepted, "aquamarine")
-        res += self.highlight("rejected", self.rejected, "orange")
-        res += self.highlight("released", self.released, "orange")
-        res += self.highlight("modified", self.modified, "orange")
-        res += self.highlight("aborted", self.aborted, "crimson")
-        res += self.highlight("more", self.more, "chartreuse")
-        res += self.highlight("drain", self.drain, "gold")
-        res += self.highlight("no_credit", self.no_credit, "indianred")
+        res += self.highlight("errors", self.errors, common.color_of("errors"))
+        res += self.highlight("unsettled", self.unsettled, common.color_of("unsettled"))
+        res += self.highlight("presettled", self.presettled, common.color_of("presettled"))
+        res += self.highlight("accepted", self.accepted, common.color_of("accepted"))
+        res += self.highlight("rejected", self.rejected, common.color_of("rejected"))
+        res += self.highlight("released", self.released, common.color_of("released"))
+        res += self.highlight("modified", self.modified, common.color_of("modified"))
+        res += self.highlight("aborted", self.aborted, common.color_of("aborted"))
+        res += self.highlight("more", self.more, common.color_of("more"))
+        res += self.highlight("drain", self.drain, common.color_of("drain"))
+        res += self.highlight("no_credit", self.no_credit, common.color_of("no_credit"))
         return res
 
     @classmethod
@@ -113,17 +113,17 @@ class Counts():
 
     def show_table_data(self):
         res = ""
-        res += self.show_table_element("errors", self.errors, "yellow")
-        res += self.show_table_element("unsettled", self.unsettled, "tomato")
-        res += self.show_table_element("presettled", self.presettled, "aqua")
-        res += self.show_table_element("accepted", self.accepted, "aquamarine")
-        res += self.show_table_element("rejected", self.rejected, "orange")
-        res += self.show_table_element("released", self.released, "orange")
-        res += self.show_table_element("modified", self.modified, "orange")
-        res += self.show_table_element("aborted", self.aborted, "crimson")
-        res += self.show_table_element("more", self.more, "chartreuse")
-        res += self.show_table_element("drain", self.drain, "gold")
-        res += self.show_table_element("no_credit", self.no_credit, "indianred")
+        res += self.show_table_element("errors", self.errors, common.color_of("errors"))
+        res += self.show_table_element("unsettled", self.unsettled, common.color_of("unsettled"))
+        res += self.show_table_element("presettled", self.presettled, common.color_of("presettled"))
+        res += self.show_table_element("accepted", self.accepted, common.color_of("accepted"))
+        res += self.show_table_element("rejected", self.rejected, common.color_of("rejected"))
+        res += self.show_table_element("released", self.released, common.color_of("released"))
+        res += self.show_table_element("modified", self.modified, common.color_of("modified"))
+        res += self.show_table_element("aborted", self.aborted, common.color_of("aborted"))
+        res += self.show_table_element("more", self.more, common.color_of("more"))
+        res += self.show_table_element("drain", self.drain, common.color_of("drain"))
+        res += self.show_table_element("no_credit", self.no_credit, common.color_of("no_credit"))
         return res
 
 
@@ -387,10 +387,10 @@ class AllDetails():
     #
     #
     def format_errors(self, n_errors):
-        return ("<span style=\"background-color:yellow\">errors: %d</span>" % n_errors) if n_errors > 0 else ""
+        return ("<span style=\"background-color:%s\">errors: %d</span>" % (common.color_of("errors"), n_errors)) if n_errors > 0 else ""
 
     def format_unsettled(self, n_unsettled):
-        return ("<span style=\"background-color:orange\">unsettled: %d</span>" % n_unsettled) if n_unsettled > 0 else ""
+        return ("<span style=\"background-color:%s\">unsettled: %d</span>" % (common.color_of("unsettled"), n_unsettled)) if n_unsettled > 0 else ""
 
     def classify_connection(self, id):
         """
@@ -720,6 +720,88 @@ class AllDetails():
             for sess in conn_detail.session_list:
                 for link in sess.link_list:
                     self.comn.shorteners.short_addr_names.translate(link.first_address, False, link)
+
+    def evaluate_credit(self):
+        for conn in self.rtr.conn_list:
+            id = self.rtr.conn_id(conn)
+            conn_detail = self.rtr.details.conn_details[id]
+            for sess in conn_detail.session_list:
+                for link in sess.link_list:
+                    aaa_plf = link.frame_list[0]
+                    # ignore links without starting attach
+                    if aaa_plf.data.name != "attach":
+                        break
+                    # process flaggage
+                    look_for_initial_attach = True
+                    look_for_sender_delivery_id = True
+                    dir_of_xfer = ''
+                    dir_of_flow = ''
+                    current_delivery = 0 # next transfer expected id
+                    delivery_limit = 0 # first unreachable delivery id from flow
+                    credit_stall = False
+
+                    for plf in link.frame_list:
+                        if look_for_initial_attach:
+                            # record info about initial attach
+                            is_rcvr = aaa_plf.data.is_receiver
+                            o_dir = aaa_plf.data.direction
+                            # derive info about where to look for credit and transfer id
+                            #  role dir  transfers flow w/credit case
+                            #  ---- ---- --------- ------------- ----
+                            #  rcvr  <-   ->        <-            A
+                            #  rcvr  ->   <-        ->            B
+                            #  sndr  <-   <-        ->            B
+                            #  sndr  ->   ->        <-            A
+                            #
+                            if (((is_rcvr) and (o_dir == text.direction_in())) or
+                                ((not is_rcvr) and (o_dir == text.direction_out()))):
+                                # case A
+                                dir_of_xfer = text.direction_out()
+                                dir_of_flow = text.direction_in()
+                            else:
+                                # case B
+                                dir_of_xfer = text.direction_in()
+                                dir_of_flow = text.direction_out()
+                            look_for_initial_attach = False
+                            if is_rcvr:
+                                continue
+                            else:
+                                pass # sender fallthrough to find initial-delivery-count
+                        if look_for_sender_delivery_id:
+                            if plf.data.name != "attach":
+                                continue
+                            else:
+                                current_delivery = int(plf.data.described_type.dict.get("initial-delivery_count", "0"))
+                                delivery_limit = current_delivery
+                                look_for_sender_delivery_id = False
+
+
+                        if plf.data.name == "flow":
+                            if plf.data.direction == dir_of_flow:
+                                # a flow in the normal direction updates the delivery limit
+                                dc = plf.data.described_type.dict.get("delivery-count", "0")
+                                lc = plf.data.described_type.dict.get("link-credit", "0")
+                                delivery_limit = int(dc) + int(lc)  # TODO: wrap at 32-bits
+                                if credit_stall and delivery_limit > current_delivery: # TODO: wrap
+                                    credit_stall = False
+                                    plf.data.web_show_str += " <span style=\"background-color:%s\">credit restored</span>" % common.color_of("no_credit")
+                            else:
+                                # flow in the opposite direction updates the senders current delivery
+                                current_delivery = int(plf.data.described_type.dict.get("initial-delivery_count", "0"))
+
+                        elif plf.data.transfer:
+                            if plf.data.direction == dir_of_xfer:
+                                # consider the transfer to have arrived when last transfer seen
+                                current_delivery += 1 # TODO: wrap at 32-bits
+                                if current_delivery == delivery_limit:
+                                    link.counts.no_credit += 1
+                                    sess.counts.no_credit += 1
+                                    conn_detail.counts.no_credit += 1
+                                    plf.data.transfer_exhausted_credit = True
+                                    credit_stall = True
+                                    plf.data.web_show_str += " <span style=\"background-color:%s\">no more credit</span>" % common.color_of("no_credit")
+                            else:
+                                pass   # transfer in wrong direction??
 
     def show_html(self):
         for conn in self.rtr.conn_list:

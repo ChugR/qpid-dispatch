@@ -234,6 +234,7 @@ def main_except(argv):
             for rtr in rtrlist:
                 rtr.details.compute_settlement()
                 rtr.details.index_addresses()
+                rtr.details.evaluate_credit()
 
     #
     # Start producing the output stream
