@@ -134,6 +134,7 @@ class LogLineData:
         self.transfer_size = ""  # size declared by number in parenthesis
         self.transfer_short_name = ""
         self.transfer_settled = False
+        self.transfer_presettled = False
         self.transfer_more = False
         self.transfer_resume = False
         self.transfer_aborted = False

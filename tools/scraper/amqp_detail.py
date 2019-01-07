@@ -54,6 +54,7 @@ class Counts():
         self.errors = 0    # amqp error - simple count
         # derived facts about message settlement
         self.unsettled = 0
+        self.presettled = 0
         self.accepted = 0
         self.rejected = 0
         self.released = 0
@@ -80,8 +81,9 @@ class Counts():
     def show_html(self):
         res = ""
         res += self.highlight("errors", self.errors, "yellow")
-        res += self.highlight("unsettled", self.unsettled, "orange")
-        res += self.highlight("accepted", self.accepted, "orange")
+        res += self.highlight("unsettled", self.unsettled, "tomato")
+        res += self.highlight("presettled", self.presettled, "aqua")
+        res += self.highlight("accepted", self.accepted, "aquamarine")
         res += self.highlight("rejected", self.rejected, "orange")
         res += self.highlight("released", self.released, "orange")
         res += self.highlight("modified", self.modified, "orange")
@@ -410,6 +412,7 @@ class AllDetails():
         """
         if transfer.data.settled is not None and transfer.data.settled == "true":
             result = "transfer presettled"
+            transfer.data.transfer_presettled = True
             if rcv_disposition is not None:
                 sys.stderr.write("WARING: Receiver disposition for presettled message. connid:%s, line:%s\n" %
                                  (rcv_disposition.data.conn_id, rcv_disposition.lineno))
@@ -420,6 +423,7 @@ class AllDetails():
             if "1" in link.snd_settle_mode:
                 # link mode sends only settled transfers
                 result = "link presettled"
+                transfer.data.transfer_presettled = True
                 if rcv_disposition is not None:
                     sys.stderr.write("WARING: Receiver disposition for presettled link. connid:%s, line:%s\n" %
                                      (rcv_disposition.data.conn_id, rcv_disposition.lineno))
@@ -607,6 +611,27 @@ class AllDetails():
                                                  (splf.data.conn_id))
                             sdispmap[did] = splf
 
+    def rollup_disposition_counts(self, state, conn, sess, link):
+        if state is not None:
+            if state.startswith("acce"):
+                conn.accepted += 1
+                sess.accepted += 1
+                link.accepted += 1
+            elif state.startswith("reje"):
+                conn.rejected += 1
+                sess.rejected += 1
+                link.rejected += 1
+            elif state.startswith("rele"):
+                conn.released += 1
+                sess.released += 1
+                link.released += 1
+            elif state.startswith("modi"):
+                conn.modified += 1
+                sess.modified += 1
+                link.modified += 1
+            else:
+                pass    # Hmmm, some other disposition. TODO: count these
+
     def compute_settlement(self):
         for conn in self.rtr.conn_list:
             id = self.rtr.conn_id(conn)
@@ -631,6 +656,16 @@ class AllDetails():
                                     link.counts.unsettled += 1
                                     sess.counts.unsettled += 1
                                     conn_detail.counts.unsettled += 1
+
+                            else:
+                                if not plf.data.transfer_more:
+                                    if plf.data.transfer_presettled:
+                                        link.counts.presettled += 1
+                                        sess.counts.presettled += 1
+                                        conn_detail.counts.presettled += 1
+                                    else:
+                                        self.rollup_disposition_counts(
+                                            plf.data.final_disposition.data.disposition_state, conn_detail.counts, sess.counts, link.counts)
 
     def index_addresses(self):
         for conn in self.rtr.conn_list:
