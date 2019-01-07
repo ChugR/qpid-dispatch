@@ -40,6 +40,7 @@ import os
 import sys
 import traceback
 
+import amqp_detail
 import common
 import datetime
 from log_splitter import main_except as splitter_main
@@ -359,7 +360,7 @@ def main_except(argv):
     print("<h3>Connections by ConnectionId</h3>")
     print(
         "<table><tr> <th rowspan=\"2\">View</th> <th colspan=\"2\">Router</th> <th rowspan=\"2\">Dir</th> <th colspan=\"2\">Peer</th> <th rowspan=\"2\">Log lines</th> "
-        "<th rowspan=\"2\">N links</th><th rowspan=\"2\">Transfer bytes</th> <th rowspan=\"2\">AMQP errors</th> <th rowspan=\"2\">Unsettled</th> <th rowspan=\"2\">Open time</th> <th rowspan=\"2\">Close time</th></tr>")
+        "<th rowspan=\"2\">N links</th><th rowspan=\"2\">Transfer bytes</th> %s </tr>" % amqp_detail.Counts.show_table_heads())
     print("<tr> <th>container</th> <th>connid</th> <th>connid</th> <th>container</th></tr>")
 
     tConn = 0
@@ -377,22 +378,15 @@ def main_except(argv):
                 peerconnid = comn.conn_peers_connid.get(id, "")
                 n_links = rtr.details.links_in_connection(id)
                 tLinks += n_links
-                errs = sum(1 for plf in rtr.conn_to_frame_map[id] if plf.data.amqp_error)
-                tErrs += errs
-                stime = rtr.conn_open_time.get(id, text.nbsp())
-                if stime != text.nbsp():
-                    stime = stime.datetime
-                etime = rtr.conn_close_time.get(id, text.nbsp())
-                if etime != text.nbsp():
-                    etime = etime.datetime
                 conn_details = rtr.details.conn_details[id]
+                tErrs += conn_details.counts.errors
                 print("<tr>")
                 print("<td> <input type=\"checkbox\" id=\"cb_sel_%s\" " % id)
                 print("checked=\"true\" onclick=\"javascript:show_if_cb_sel_%s()\"> </td>" % (id))
                 print("<td>%s</td><td><a href=\"#cd_%s\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-                      "<td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%s</td><td>%s</td></tr>" %
+                      "<td>%d</td><td>%s</td> %s </tr>" %
                       (rid, id, id, rtr.conn_dir[id], peerconnid, peer, rtr.conn_log_lines[id], n_links,
-                       rtr.conn_xfer_bytes[id], errs, conn_details.counts.unsettled, stime, etime))
+                       rtr.conn_xfer_bytes[id], conn_details.counts.show_table_data() ))
                 tLines += rtr.conn_log_lines[id]
                 tBytes += rtr.conn_xfer_bytes[id]
     print(

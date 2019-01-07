@@ -93,6 +93,40 @@ class Counts():
         res += self.highlight("no_credit", self.no_credit, "indianred")
         return res
 
+    @classmethod
+    def show_table_heads(cls):
+        return "<th rowspan=\"2\">errors</th>" \
+               "<th rowspan=\"2\">unsettled</th>" \
+               "<th rowspan=\"2\">presettled</th>" \
+               "<th rowspan=\"2\">accepted</th>" \
+               "<th rowspan=\"2\">rejected</th>" \
+               "<th rowspan=\"2\">released</th>" \
+               "<th rowspan=\"2\">modified</th>" \
+               "<th rowspan=\"2\">aborted</th>" \
+               "<th rowspan=\"2\">more</th>" \
+               "<th rowspan=\"2\">drain</th>" \
+               "<th rowspan=\"2\">no_credit</th>"
+
+    def show_table_element(self, name, value, color):
+        return ("<td>%s</td>" % text.nbsp()) if value == 0 else \
+            ("<td>%s</td>" % ("<span style=\"background-color:%s\">%s</span> " % (color, str(value))))
+
+    def show_table_data(self):
+        res = ""
+        res += self.show_table_element("errors", self.errors, "yellow")
+        res += self.show_table_element("unsettled", self.unsettled, "tomato")
+        res += self.show_table_element("presettled", self.presettled, "aqua")
+        res += self.show_table_element("accepted", self.accepted, "aquamarine")
+        res += self.show_table_element("rejected", self.rejected, "orange")
+        res += self.show_table_element("released", self.released, "orange")
+        res += self.show_table_element("modified", self.modified, "orange")
+        res += self.show_table_element("aborted", self.aborted, "crimson")
+        res += self.show_table_element("more", self.more, "chartreuse")
+        res += self.show_table_element("drained", self.drained, "gold")
+        res += self.show_table_element("no_credit", self.no_credit, "indianred")
+        return res
+
+
 
 class ConnectionDetail():
     """
