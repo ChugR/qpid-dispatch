@@ -770,11 +770,7 @@ class AllDetails():
                         sess.counts.credit_not_evaluated += 1
                         conn_detail.counts.credit_not_evaluated += 1
                         break
-                    # record info about initial attach
-                    is_rcvr = link.frame_list[0].data.is_receiver
-                    o_dir = link.frame_list[0].data.direction
                     # process flaggage
-                    look_for_initial_attach = True
                     look_for_sender_delivery_id = True
                     dir_of_xfer = ''
                     dir_of_flow = ''
@@ -786,6 +782,26 @@ class AllDetails():
                     credit_stall = False
                     tod_of_no_credit = None
                     tod_of_shutdown = None
+                    # record info about initial attach
+                    is_rcvr = link.frame_list[0].data.is_receiver
+                    o_dir = link.frame_list[0].data.direction
+                    # derive info about where to look for credit and transfer id
+                    #  role dir  transfers flow w/credit case
+                    #  ---- ---- --------- ------------- ----
+                    #  rcvr  <-   ->        <-            A
+                    #  rcvr  ->   <-        ->            B
+                    #  sndr  <-   <-        ->            B
+                    #  sndr  ->   ->        <-            A
+                    #
+                    if (((is_rcvr) and (o_dir == text.direction_in())) or
+                        ((not is_rcvr) and (o_dir == text.direction_out()))):
+                        # case A
+                        dir_of_xfer = text.direction_out()
+                        dir_of_flow = text.direction_in()
+                    else:
+                        # case B
+                        dir_of_xfer = text.direction_in()
+                        dir_of_flow = text.direction_out()
 
                     for plf in link.frame_list:
                         # initial credit delay starts at reception of second attach
@@ -794,33 +810,8 @@ class AllDetails():
                                 n_attaches += 1
                                 if n_attaches == 2:
                                     tod_of_second_attach = plf.datetime
-                        if look_for_initial_attach:
-                            # derive info about where to look for credit and transfer id
-                            #  role dir  transfers flow w/credit case
-                            #  ---- ---- --------- ------------- ----
-                            #  rcvr  <-   ->        <-            A
-                            #  rcvr  ->   <-        ->            B
-                            #  sndr  <-   <-        ->            B
-                            #  sndr  ->   ->        <-            A
-                            #
-                            if (((is_rcvr) and (o_dir == text.direction_in())) or
-                                ((not is_rcvr) and (o_dir == text.direction_out()))):
-                                # case A
-                                dir_of_xfer = text.direction_out()
-                                dir_of_flow = text.direction_in()
-                            else:
-                                # case B
-                                dir_of_xfer = text.direction_in()
-                                dir_of_flow = text.direction_out()
-                            look_for_initial_attach = False
-                            if is_rcvr:
-                                continue
-                            else:
-                                pass # sender fallthrough to find initial-delivery-count
                         if look_for_sender_delivery_id:
-                            if plf.data.name != "attach":
-                                continue # Hmmm, what are we skipping here?
-                            else:
+                            if plf.data.name == "attach" and not plf.data.is_receiver:
                                 current_delivery = int(plf.data.described_type.dict.get("initial-delivery_count", "0"))
                                 delivery_limit = current_delivery
                                 look_for_sender_delivery_id = False
@@ -831,6 +822,9 @@ class AllDetails():
                                 dc = plf.data.described_type.dict.get("delivery-count", "0")
                                 lc = plf.data.described_type.dict.get("link-credit", "0")
                                 delivery_limit = int(dc) + int(lc)  # TODO: wrap at 32-bits
+                                if n_attaches < 2:
+                                    # a working flow before sender attach - cancel initial stall
+                                    init_stall = False
                                 if init_stall:
                                     init_stall = False
                                     dur = plf.datetime - tod_of_second_attach
