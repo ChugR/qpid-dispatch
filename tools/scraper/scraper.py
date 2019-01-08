@@ -361,8 +361,9 @@ def main_except(argv):
     print("<h3>Connections by ConnectionId</h3>")
     print(
         "<table><tr> <th rowspan=\"2\">View</th> <th colspan=\"2\">Router</th> <th rowspan=\"2\">Dir</th> <th colspan=\"2\">Peer</th> <th rowspan=\"2\">Log lines</th> "
-        "<th rowspan=\"2\">N links</th><th rowspan=\"2\">Transfer bytes</th> %s </tr>" % amqp_detail.Counts.show_table_heads())
-    print("<tr> <th>container</th> <th>connid</th> <th>connid</th> <th>container</th></tr>")
+        "<th rowspan=\"2\">N links</th><th rowspan=\"2\">Transfer bytes</th> %s </tr>" % amqp_detail.Counts.show_table_heads1())
+    print("<tr> <th>container</th> <th>connid</th> <th>connid</th> <th>container</th> %s </tr>" %
+          amqp_detail.Counts.show_table_heads2())
 
     tConn = 0
     tLines = 0

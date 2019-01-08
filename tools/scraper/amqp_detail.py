@@ -94,18 +94,25 @@ class Counts():
         return res
 
     @classmethod
-    def show_table_heads(cls):
-        return "<th rowspan=\"2\">errors</th>" \
-               "<th rowspan=\"2\">unsettled</th>" \
-               "<th rowspan=\"2\">presettled</th>" \
-               "<th rowspan=\"2\">accepted</th>" \
-               "<th rowspan=\"2\">rejected</th>" \
-               "<th rowspan=\"2\">released</th>" \
-               "<th rowspan=\"2\">modified</th>" \
-               "<th rowspan=\"2\">aborted</th>" \
-               "<th rowspan=\"2\">more</th>" \
-               "<th rowspan=\"2\">drain</th>" \
-               "<th rowspan=\"2\">no_credit</th>"
+    def show_table_heads1(cls):
+        return "<th rowspan=\"2\"><span title=\"AMQP errors\">ERR</span></th>" \
+               "<th colspan=\"6\">Settlement - disposition</th>" \
+               "<th colspan=\"2\">Transfer</th>" \
+               "<th>Flow</th>" \
+               "<th>Credit</th>"
+
+    @classmethod
+    def show_table_heads2(cls):
+        return "<th><span title=\"Unsettled transfers\">UNSTL</span></th>" \
+               "<th><span title=\"Presettled transfers\">PRE</span></th>" \
+               "<th><span title=\"Disposition: accepted\">ACCPT</span></th>" \
+               "<th><span title=\"Disposition: rejected\">RJCT</span></th>" \
+               "<th><span title=\"Disposition: released\">RLSD</span></th>" \
+               "<th><span title=\"Disposition: modified\">MDFD</span></th>" \
+               "<th><span title=\"Transfer abort=true\">ABRT</span></th>" \
+               "<th><span title=\"Transfer: more=true\">MOR</span></th>" \
+               "<th><span title=\"Flow: drain=true\">DRN</span></th>" \
+               "<th><span title=\"Transfer: credit exhausted\">-> 0</span></th>"
 
     def show_table_element(self, name, value, color):
         return ("<td>%s</td>" % text.nbsp()) if value == 0 else \
