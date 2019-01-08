@@ -66,6 +66,7 @@ class Counts():
         # link drained
         self.drain = 0
         # link out of credit
+        self.credit_not_evaluated = 0
         self.no_credit = 0 # event count, excludes drain credit exhaustion
         self.initial_no_credit_duration = datetime.timedelta() # before first credit
         self.no_credit_duration = datetime.timedelta() # after credit issued and then exhausted
@@ -103,9 +104,10 @@ class Counts():
         res += self.highlight("aborted", self.aborted, common.color_of("aborted"))
         res += self.highlight("more", self.more, common.color_of("more"))
         res += self.highlight("drain", self.drain, common.color_of("drain"))
-        res += self.highlight("no_credit", self.no_credit, common.color_of("no_credit"))
         res += self.highlight_duration("initial", self.initial_no_credit_duration, common.color_of("no_credit"))
+        res += self.highlight("no_credit", self.no_credit, common.color_of("no_credit"))
         res += self.highlight_duration("duration", self.no_credit_duration, common.color_of("no_credit"))
+        res += self.highlight("no_eval", self.credit_not_evaluated, common.color_of("no_credit"))
         return res
 
     @classmethod
@@ -114,7 +116,7 @@ class Counts():
                "<th colspan=\"6\">Settlement - disposition</th>" \
                "<th colspan=\"2\">Transfer</th>" \
                "<th>Flow</th>" \
-               "<th colspan=\"3\">Credit</th>"
+               "<th colspan=\"4\">Credit starvation</th>"
 
     @classmethod
     def show_table_heads2(cls):
@@ -127,9 +129,11 @@ class Counts():
                "<th><span title=\"Transfer abort=true\">ABRT</span></th>" \
                "<th><span title=\"Transfer: more=true\">MOR</span></th>" \
                "<th><span title=\"Flow: drain=true\">DRN</span></th>" \
+               "<th><span title=\"Initial stall (S)\">initial (S)</span></th>" \
                "<th><span title=\"Credit exhausted\">-> 0</span></th>" \
-               "<th><span title=\"Initial stall (S)\">initial</span></th>" \
-               "<th><span title=\"Normal credit exhaustion stall (S)\">duration</span></th>"
+               "<th><span title=\"Normal credit exhaustion stall (S)\">duration (S)</span></th>" \
+               "<th><span title=\"Credit not evaluated\">?</span></th>"
+
 
     def show_table_element(self, name, value, color):
         return ("<td>%s</td>" % text.nbsp()) if value == 0 else \
@@ -153,9 +157,10 @@ class Counts():
         res += self.show_table_element("aborted", self.aborted, common.color_of("aborted"))
         res += self.show_table_element("more", self.more, common.color_of("more"))
         res += self.show_table_element("drain", self.drain, common.color_of("drain"))
-        res += self.show_table_element("no_credit", self.no_credit, common.color_of("no_credit"))
         res += self.show_table_duration(self.initial_no_credit_duration)
+        res += self.show_table_element("no_credit", self.no_credit, common.color_of("no_credit"))
         res += self.show_table_duration(self.no_credit_duration)
+        res += self.show_table_element("?", self.credit_not_evaluated, common.color_of("no_credit"))
         return res
 
 
@@ -407,8 +412,6 @@ class LinkDetail():
         self.receiver_class = ''
 
         self.frame_list = []
-
-        self.credit_not_evaluated = False
 
     def GetId(self):
         return self.session_detail.GetId() + "_" + str(self.session_seq)
@@ -763,7 +766,9 @@ class AllDetails():
                 for link in sess.link_list:
                     # ignore links without starting attach
                     if link.frame_list[0].data.name != "attach":
-                        link.credit_not_evaluated = True
+                        link.counts.credit_not_evaluated += 1
+                        sess.counts.credit_not_evaluated += 1
+                        conn_detail.counts.credit_not_evaluated += 1
                         break
                     # record info about initial attach
                     is_rcvr = link.frame_list[0].data.is_receiver
