@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import absolute_import
 from __future__ import print_function
 
+import datetime
 import sys
 import traceback
 
@@ -66,7 +67,8 @@ class Counts():
         self.drain = 0
         # link out of credit
         self.no_credit = 0 # event count, excludes drain credit exhaustion
-        self.no_credit_duration = None
+        self.initial_no_credit_duration = datetime.timedelta() # before first credit
+        self.no_credit_duration = datetime.timedelta() # after credit issued and then exhausted
 
     def highlight(self, name, value, color):
         """
@@ -76,6 +78,17 @@ class Counts():
         result = ""
         if value:
             result = "<span style=\"background-color:%s\">%s: %s</span> " % (color, name, str(value))
+        return result
+
+    def highlight_duration(self, name, value, color):
+        """
+        if value is non zero then return a colorized 'name: value' text stream
+        else return a blank string
+        """
+        result = ""
+        if value.seconds > 0 or value.microseconds > 0:
+            t = float(value.seconds) + float(value.microseconds) / 1000000.0
+            result = "<span style=\"background-color:%s\">%s: %0.06f</span> " % (color, name, t)
         return result
 
     def show_html(self):
@@ -91,6 +104,8 @@ class Counts():
         res += self.highlight("more", self.more, common.color_of("more"))
         res += self.highlight("drain", self.drain, common.color_of("drain"))
         res += self.highlight("no_credit", self.no_credit, common.color_of("no_credit"))
+        res += self.highlight_duration("initial", self.initial_no_credit_duration, common.color_of("no_credit"))
+        res += self.highlight_duration("duration", self.no_credit_duration, common.color_of("no_credit"))
         return res
 
     @classmethod
@@ -99,7 +114,7 @@ class Counts():
                "<th colspan=\"6\">Settlement - disposition</th>" \
                "<th colspan=\"2\">Transfer</th>" \
                "<th>Flow</th>" \
-               "<th>Credit</th>"
+               "<th colspan=\"3\">Credit</th>"
 
     @classmethod
     def show_table_heads2(cls):
@@ -112,11 +127,19 @@ class Counts():
                "<th><span title=\"Transfer abort=true\">ABRT</span></th>" \
                "<th><span title=\"Transfer: more=true\">MOR</span></th>" \
                "<th><span title=\"Flow: drain=true\">DRN</span></th>" \
-               "<th><span title=\"Transfer: credit exhausted\">-> 0</span></th>"
+               "<th><span title=\"Credit exhausted\">-> 0</span></th>" \
+               "<th><span title=\"Initial stall (S)\">initial</span></th>" \
+               "<th><span title=\"Normal credit exhaustion stall (S)\">duration</span></th>"
 
     def show_table_element(self, name, value, color):
         return ("<td>%s</td>" % text.nbsp()) if value == 0 else \
             ("<td>%s</td>" % ("<span style=\"background-color:%s\">%s</span> " % (color, str(value))))
+
+    def show_table_duration(self, delta):
+        if delta.seconds == 0 and delta.microseconds == 0:
+            return "<td>%s</td>" % text.nbsp()
+        t = float(delta.seconds) + float(delta.microseconds) / 1000000.0
+        return ("<td>%0.06f</td>" % t)
 
     def show_table_data(self):
         res = ""
@@ -131,6 +154,8 @@ class Counts():
         res += self.show_table_element("more", self.more, common.color_of("more"))
         res += self.show_table_element("drain", self.drain, common.color_of("drain"))
         res += self.show_table_element("no_credit", self.no_credit, common.color_of("no_credit"))
+        res += self.show_table_duration(self.initial_no_credit_duration)
+        res += self.show_table_duration(self.no_credit_duration)
         return res
 
 
@@ -382,6 +407,8 @@ class LinkDetail():
         self.receiver_class = ''
 
         self.frame_list = []
+
+        self.credit_not_evaluated = False
 
     def GetId(self):
         return self.session_detail.GetId() + "_" + str(self.session_seq)
@@ -734,10 +761,13 @@ class AllDetails():
             conn_detail = self.rtr.details.conn_details[id]
             for sess in conn_detail.session_list:
                 for link in sess.link_list:
-                    aaa_plf = link.frame_list[0]
                     # ignore links without starting attach
-                    if aaa_plf.data.name != "attach":
+                    if link.frame_list[0].data.name != "attach":
+                        link.credit_not_evaluated = True
                         break
+                    # record info about initial attach
+                    is_rcvr = link.frame_list[0].data.is_receiver
+                    o_dir = link.frame_list[0].data.direction
                     # process flaggage
                     look_for_initial_attach = True
                     look_for_sender_delivery_id = True
@@ -745,13 +775,21 @@ class AllDetails():
                     dir_of_flow = ''
                     current_delivery = 0 # next transfer expected id
                     delivery_limit = 0 # first unreachable delivery id from flow
+                    n_attaches = 0
+                    tod_of_second_attach = None
+                    init_stall = True
                     credit_stall = False
+                    tod_of_no_credit = None
+                    tod_of_shutdown = None
 
                     for plf in link.frame_list:
+                        # initial credit delay starts at reception of second attach
+                        if n_attaches < 2:
+                            if plf.data.name == "attach":
+                                n_attaches += 1
+                                if n_attaches == 2:
+                                    tod_of_second_attach = plf.datetime
                         if look_for_initial_attach:
-                            # record info about initial attach
-                            is_rcvr = aaa_plf.data.is_receiver
-                            o_dir = aaa_plf.data.direction
                             # derive info about where to look for credit and transfer id
                             #  role dir  transfers flow w/credit case
                             #  ---- ---- --------- ------------- ----
@@ -776,12 +814,11 @@ class AllDetails():
                                 pass # sender fallthrough to find initial-delivery-count
                         if look_for_sender_delivery_id:
                             if plf.data.name != "attach":
-                                continue
+                                continue # Hmmm, what are we skipping here?
                             else:
                                 current_delivery = int(plf.data.described_type.dict.get("initial-delivery_count", "0"))
                                 delivery_limit = current_delivery
                                 look_for_sender_delivery_id = False
-
 
                         if plf.data.name == "flow":
                             if plf.data.direction == dir_of_flow:
@@ -789,26 +826,74 @@ class AllDetails():
                                 dc = plf.data.described_type.dict.get("delivery-count", "0")
                                 lc = plf.data.described_type.dict.get("link-credit", "0")
                                 delivery_limit = int(dc) + int(lc)  # TODO: wrap at 32-bits
+                                if init_stall:
+                                    init_stall = False
+                                    dur = plf.datetime - tod_of_second_attach
+                                    link.counts.initial_no_credit_duration = dur
+                                    sess.counts.initial_no_credit_duration += dur
+                                    conn_detail.counts.initial_no_credit_duration += dur
                                 if credit_stall and delivery_limit > current_delivery: # TODO: wrap
                                     credit_stall = False
                                     plf.data.web_show_str += " <span style=\"background-color:%s\">credit restored</span>" % common.color_of("no_credit")
+                                    dur = plf.datetime - tod_of_no_credit
+                                    link.counts.no_credit_duration += dur
+                                    sess.counts.no_credit_duration += dur
+                                    conn_detail.counts.no_credit_duration += dur
                             else:
                                 # flow in the opposite direction updates the senders current delivery
+                                # normally used to consume credit in response to a drain from receiver
                                 current_delivery = int(plf.data.described_type.dict.get("initial-delivery_count", "0"))
 
                         elif plf.data.transfer:
                             if plf.data.direction == dir_of_xfer:
-                                # consider the transfer to have arrived when last transfer seen
-                                current_delivery += 1 # TODO: wrap at 32-bits
-                                if current_delivery == delivery_limit:
-                                    link.counts.no_credit += 1
-                                    sess.counts.no_credit += 1
-                                    conn_detail.counts.no_credit += 1
-                                    plf.data.transfer_exhausted_credit = True
-                                    credit_stall = True
-                                    plf.data.web_show_str += " <span style=\"background-color:%s\">no more credit</span>" % common.color_of("no_credit")
+                                if not plf.data.transfer_more:
+                                    # consider the transfer to have arrived when last transfer seen
+                                    current_delivery += 1 # TODO: wrap at 32-bits
+                                    if current_delivery == delivery_limit:
+                                        link.counts.no_credit += 1
+                                        sess.counts.no_credit += 1
+                                        conn_detail.counts.no_credit += 1
+                                        plf.data.transfer_exhausted_credit = True
+                                        credit_stall = True
+                                        plf.data.web_show_str += " <span style=\"background-color:%s\">no more credit</span>" % common.color_of("no_credit")
+                                        tod_of_no_credit = plf.datetime
+                                    else:
+                                        pass # still have credit
+                                else:
+                                    pass # transfers with 'more' set don't consume credit
                             else:
                                 pass   # transfer in wrong direction??
+
+                        elif plf.data.name == "detach":
+                            tod_of_shutdown = plf.datetime
+                            break
+
+                    # clean up lingering credit stall
+                    if init_stall or credit_stall:
+                        if tod_of_shutdown is None:
+                            # find first end or close and call that shutdown time
+                            for plf in sess.session_frame_list:
+                                if plf.data.name == "end":
+                                    tod_of_shutdown = plf.datetime
+                                    break
+                            if tod_of_shutdown is None:
+                                for plf in conn_detail.unaccounted_frame_list:
+                                    if plf.data.name == "close":
+                                        tod_of_shutdown = plf.datetime
+                                        break
+                                if tod_of_shutdown is None:
+                                    # Hmmm, no shutdown. Use last link frame
+                                    tod_of_shutdown = link.frame_list[-1].datetime
+                        if init_stall:
+                            dur = tod_of_shutdown - tod_of_second_attach
+                            link.counts.initial_no_credit_duration = dur
+                            sess.counts.initial_no_credit_duration += dur
+                            conn_detail.counts.initial_no_credit_duration += dur
+                        if credit_stall: # TODO: wrap
+                            dur = tod_of_shutdown - tod_of_no_credit
+                            link.counts.no_credit_duration += dur
+                            sess.counts.no_credit_duration += dur
+                            conn_detail.counts.no_credit_duration += dur
 
     def show_html(self):
         for conn in self.rtr.conn_list:
