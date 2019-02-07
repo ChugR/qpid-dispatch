@@ -409,6 +409,7 @@ class MessageRouteAbortTest(MessagingHandler):
         self.ok_to_send    = True
         self.log_enable    = True
 
+        # [(op,size), ...] where Op: A-abort, D-deliver, F-finish
         self.program       = [('D', 10), ('D', 20), ('A', 30), ('A', 40), ('D', 50), ('D', 60),
                               ('A', 100), ('D', 200),
                               ('A', 1000), ('A', 2000), ('A', 3000), ('A', 4000), ('A', 5000), ('D', 6000),

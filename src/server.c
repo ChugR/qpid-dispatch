@@ -47,6 +47,8 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#define MUTEX_SYS_MUTEX 1
+#include "log_obj_namer.inc"
 
 struct qd_server_t {
     qd_dispatch_t            *qd;
@@ -901,7 +903,7 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e, pn_connection_t *pn_co
         qdr_handle_authentication_service_connection_event(e);
         return true;
     }
-
+    log_event(e, "server-handle ENTRY");
     switch (pn_event_type(e)) {
 
     case PN_PROACTOR_INTERRUPT:
@@ -980,7 +982,7 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e, pn_connection_t *pn_co
     default:
         break;
     } // Switch event type
-
+    log_event(e, "server-handle EXIT ");
     if (ctx)
         qd_container_handle_event(qd_server->container, e, pn_conn, ctx);
 
@@ -1273,6 +1275,7 @@ void qd_server_run(qd_dispatch_t *qd)
     qd_log(qd_server->log_source,
            QD_LOG_NOTICE, "Operational, %d Threads Running (process ID %ld)",
            qd_server->thread_count, (long)getpid());
+    log_this_init();
 #ifndef NDEBUG
     qd_log(qd_server->log_source, QD_LOG_INFO, "Running in DEBUG Mode");
 #endif
