@@ -1495,7 +1495,9 @@ void qd_message_send(qd_message_t *in_msg,
             msg->send_complete = true;
             // the link has an outgoing deliver. abort it.
             if (!pn_delivery_aborted(pn_link_current(pnl))) {
-                printf ("yoyoma calling pn_delivery_abort 1 for dlv %p, on link %p\n", (void *)pn_link_current(pnl), (void*)pnl);
+                printf ("yoyoma calling pn_delivery_abort 1 for dlv %p,(%s), on link %p,(%s), session_outgoing %ld\n",
+                    (void *)pn_link_current(pnl), log_obj_find_name("delivery", (void*)pn_link_current(pnl)),
+                     (void*)pnl, log_obj_find_name("link", pnl), pn_session_outgoing_bytes(pn_link_session(pnl)));
                 pn_delivery_abort(pn_link_current(pnl));
             }
             return;
@@ -1542,6 +1544,7 @@ void qd_message_send(qd_message_t *in_msg,
         qd_buffer_t *da_buf = DEQ_HEAD(new_ma);
         while (da_buf) {
             char *to_send = (char*) qd_buffer_base(da_buf);
+            printf("yoyoma, sending annotations\n");
             pn_link_send(pnl, to_send, qd_buffer_size(da_buf));
             da_buf = DEQ_NEXT(da_buf);
         }
@@ -1564,6 +1567,7 @@ void qd_message_send(qd_message_t *in_msg,
         qd_buffer_t *ta_buf = DEQ_HEAD(new_ma_trailer);
         while (ta_buf) {
             char *to_send = (char*) qd_buffer_base(ta_buf);
+            printf("yoyoma, sending annotations trailer\n");
             pn_link_send(pnl, to_send, qd_buffer_size(ta_buf));
             ta_buf = DEQ_NEXT(ta_buf);
         }
@@ -1605,9 +1609,9 @@ void qd_message_send(qd_message_t *in_msg,
             if (pn_link_current(pnl)) {
                 msg->send_complete = true;
                 if (!pn_delivery_aborted(pn_link_current(pnl))) {
-                    printf ("yoyoma calling pn_delivery_abort 2 for dlv %p(%s), link %p(%s)\n",
+                    printf ("yoyoma calling pn_delivery_abort 2 for dlv %p,(%s), link %p,(%s), session_outgoing %ld\n",
                     (void *)pn_link_current(pnl), log_obj_find_name("delivery", (void*)pn_link_current(pnl)),
-                     (void*)pnl, log_obj_find_name("link", pnl));
+                     (void*)pnl, log_obj_find_name("link", pnl), pn_session_outgoing_bytes(pn_link_session(pnl)));
                     pn_delivery_abort(pn_link_current(pnl));
                 }
             }
