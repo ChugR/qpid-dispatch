@@ -105,14 +105,16 @@ class RouterTestSslClient(RouterTestSslBase):
     OPENSSL_ALLOW_TLSV1_1 = True
     OPENSSL_ALLOW_TLSV1_2 = True
     OPENSSL_ALLOW_TLSV1_3 = False
-    
+
     # Test if OpenSSL has TLSv1_3
-    try:
-        ssl.TLSVersion.TLSv1_3
-        OPENSSL_HAS_TLSV1_3 = True
-    except NameError:
-        OPENSSL_HAS_TLSV1_3 = False
-    
+    OPENSSL_HAS_TLSV1_3 = False
+    if OPENSSL_VER_1_1_GE:
+        try:
+            ssl.TLSVersion.TLSv1_3
+            OPENSSL_HAS_TLSV1_3 = True
+        except NameError:
+            pass
+
     # Test if Proton supports TLSv1_3
     dummydomain = SSLDomain(SSLDomain.MODE_CLIENT)
     PROTON_HAS_TLSV1_3 = cproton.PN_OK == cproton.pn_ssl_domain_set_protocols(dummydomain._domain, "TLSv1.3")
