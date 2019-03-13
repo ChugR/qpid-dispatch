@@ -118,6 +118,7 @@ class RouterTestSslClient(RouterTestSslBase):
     # Test if Proton supports TLSv1_3
     dummydomain = SSLDomain(SSLDomain.MODE_CLIENT)
     PROTON_HAS_TLSV1_3 = cproton.PN_OK == cproton.pn_ssl_domain_set_protocols(dummydomain._domain, "TLSv1.3")
+    print("Proton has: %s, OpenSSL has: %s" % (PROTON_HAS_TLSV1_3, OPENSSL_HAS_TLSV1_3))
 
     # When using OpenSSL >= 1.1 and python >= 3.7, we can retrieve OpenSSL min and max protocols
     if OPENSSL_VER_1_1_GE:
@@ -139,7 +140,12 @@ class RouterTestSslClient(RouterTestSslBase):
             # At this point we are not able to precisely determine what are the minimum and maximum
             # TLS versions allowed in the system, so tests will be disabled
             RouterTestSslBase.DISABLE_SSL_TESTING = True
-
+    else:
+        if OPENSSL_HAS_TLSV1_3 and not PROTON_HAS_TLSV1_3:
+            # If OpenSSL has 1.3 but proton won't let us turn it on and off then
+            # this test fails because v1.3 runs unexpectedly.
+            RouterTestSslBase.DISABLE_SSL_TESTING = True
+        
     @classmethod
     def setUpClass(cls):
         """
