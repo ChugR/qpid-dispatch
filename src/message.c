@@ -40,6 +40,8 @@
 #define LOCK   sys_mutex_lock
 #define UNLOCK sys_mutex_unlock
 
+const char * log_obj_find_name(const char *log_obj, void *ptr);
+
 const char *STR_AMQP_NULL = "null";
 const char *STR_AMQP_TRUE = "T";
 const char *STR_AMQP_FALSE = "F";
@@ -1382,6 +1384,14 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
 static void send_handler(void *context, const unsigned char *start, int length)
 {
     pn_link_t *pnl = (pn_link_t*) context;
+
+    char hack_send_buf[21];
+    memcpy(hack_send_buf, start, 20);
+    hack_send_buf[20] = '\0';
+    void * dlv = pn_link_current(pnl);
+    printf("yoyoma send_handler calling pn_link_send 1 for delivery %p(%s), link %p(%s), length=%d, content='%s'\n",
+        dlv, log_obj_find_name("delivery", dlv), (void*)pnl, log_obj_find_name("link", (void*)pnl), length, hack_send_buf);
+
     pn_link_send(pnl, (const char*) start, length);
 }
 
@@ -1531,6 +1541,9 @@ void qd_message_send(qd_message_t *in_msg,
             msg->send_complete = true;
             // the link has an outgoing deliver. abort it.
             if (!pn_delivery_aborted(pn_link_current(pnl))) {
+                printf ("yoyoma calling pn_delivery_abort 1 for dlv %p,(%s), on link %p,(%s), session_outgoing %ld\n",
+                    (void *)pn_link_current(pnl), log_obj_find_name("delivery", (void*)pn_link_current(pnl)),
+                     (void*)pnl, log_obj_find_name("link", pnl), pn_session_outgoing_bytes(pn_link_session(pnl)));
                 pn_delivery_abort(pn_link_current(pnl));
             }
             return;
@@ -1577,6 +1590,7 @@ void qd_message_send(qd_message_t *in_msg,
         qd_buffer_t *da_buf = DEQ_HEAD(new_ma);
         while (da_buf) {
             char *to_send = (char*) qd_buffer_base(da_buf);
+            printf("yoyoma, sending annotations\n");
             pn_link_send(pnl, to_send, qd_buffer_size(da_buf));
             da_buf = DEQ_NEXT(da_buf);
         }
@@ -1599,6 +1613,7 @@ void qd_message_send(qd_message_t *in_msg,
         qd_buffer_t *ta_buf = DEQ_HEAD(new_ma_trailer);
         while (ta_buf) {
             char *to_send = (char*) qd_buffer_base(ta_buf);
+            printf("yoyoma, sending annotations trailer\n");
             pn_link_send(pnl, to_send, qd_buffer_size(ta_buf));
             ta_buf = DEQ_NEXT(ta_buf);
         }
@@ -1643,6 +1658,14 @@ void qd_message_send(qd_message_t *in_msg,
         int num_bytes_to_send = buf_size - (msg->cursor.cursor - qd_buffer_base(buf));
         ssize_t bytes_sent = 0;
         if (num_bytes_to_send > 0) {
+
+            char hack_send_buf[21];
+            memcpy(hack_send_buf, msg->cursor.cursor, 20);
+            hack_send_buf[20] = '\0';
+            void * dlv = pn_link_current(pnl);
+            printf("yoyoma calling pn_link_send 2 for delivery %p(%s), link %p(%s), length=%d, content='%s'\n",
+                dlv, log_obj_find_name("delivery", dlv), (void*)pnl, log_obj_find_name("link", (void*)pnl), num_bytes_to_send, hack_send_buf);
+
             bytes_sent = pn_link_send(pnl, (const char*)msg->cursor.cursor, num_bytes_to_send);
         }
 
@@ -1730,6 +1753,7 @@ void qd_message_send(qd_message_t *in_msg,
         if (pn_link_current(pnl)) {
             msg->send_complete = true;
             if (!pn_delivery_aborted(pn_link_current(pnl))) {
+                printf ("yoyoma calling pn_delivery_abort 3 for dlv %p\n", (void *)pn_link_current(pnl));
                 pn_delivery_abort(pn_link_current(pnl));
             }
         }
