@@ -340,6 +340,14 @@ qdr_link_t *qdr_delivery_link(const qdr_delivery_t *delivery)
     return delivery ? delivery->link : 0;
 }
 
+bool qdr_delivery_link_detach_send_done(const qdr_delivery_t *delivery)
+{
+    if (delivery && delivery->link)
+        return delivery->link->detach_send_done;
+
+    return false;
+}
+
 
 bool qdr_delivery_send_complete(const qdr_delivery_t *delivery)
 {

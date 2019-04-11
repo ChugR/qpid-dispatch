@@ -639,6 +639,18 @@ static void AMQP_disposition_handler(void* context, qd_link_t *link, pn_delivery
     qdr_delivery_t *delivery = qdr_node_delivery_qdr_from_pn(pnd);
 
     //
+    // If the delivery does not have a link reference, the qdr_link_cleanup_CT might have
+    // set it, no reson to proceed
+    //
+    // The link has been detached, no reason to deal with dispositions
+    //
+    if (!qdr_delivery_link(delivery) || qdr_delivery_link_detach_send_done(delivery))
+    {   
+        qd_log(router->log_source, QD_LOG_CRITICAL, "XXXXXXXX AMQP_disposition_handler");
+        return;
+    }
+
+    //
     // It's important to not do any processing without a qdr_delivery.  When pre-settled
     // multi-frame deliveries arrive, it's possible for the settlement to register before
     // the whole message arrives.  Such premature settlement indications must be ignored.
@@ -1601,6 +1613,19 @@ static void CORE_delivery_update(void *context, qdr_delivery_t *dlv, uint64_t di
     // If the delivery's link is somehow gone (maybe because of a connection drop, we don't proceed.
     if (!pn_delivery_link(pnd))
         return;
+
+    //
+    // If the delivery does not have a link reference, the qdr_link_cleanup_CT might have
+    // set it, no reson to proceed
+    //
+    // The link has been detached, no reason to deal with dispositions
+    //
+
+    if (!qdr_delivery_link(dlv) || qdr_delivery_link_detach_send_done(dlv))
+    {   
+        qd_log(router->log_source, QD_LOG_CRITICAL, "XXXXXXXX CORE_delivery_update");
+        return;
+    }
 
     qdr_error_t *error = qdr_delivery_error(dlv);
 
