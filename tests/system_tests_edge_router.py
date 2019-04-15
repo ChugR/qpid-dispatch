@@ -1182,7 +1182,7 @@ class DynamicAddressTest(MessagingHandler):
 class MobileAddressTest(MessagingHandler):
     """
     Create a receiver over one connection and a sender over another.
-    Send a batch of messages that should arrive normally.
+    Send a batch of messages that should be accepted by the receiver.
     Close the receiver but not the receiver connection and then
       send an extra batch of messages that should be released or modified.
     Success is when message disposition counts add up correctly.
@@ -1203,19 +1203,17 @@ class MobileAddressTest(MessagingHandler):
         self.extra_count   = 50
         self.n_rcvd        = 0
         self.n_sent        = 0
-        self.n_settled     = 0
-        self.n_released    = 0
-        self.n_modified    = 0
+        self.n_accepted    = 0
+        self.n_rel_or_mod  = 0
         self.error         = None
 
     def fail_exit(self, title):
         self.error = title
-        print("n_sent = %d. Expected %d. (Normal=%d, extra=%d)" % \
+        print("n_sent       = %d. Expected total:%d normal=%d, extra=%d" % \
             (self.n_sent, (self.normal_count + self.extra_count), self.normal_count, self.extra_count))
-        print("n_rcvd = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
-        print("n_settled = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
-        print("n_released = %d, n_modified = %d, totaling = %d. Expected %d" % \
-            (self.n_released, self.n_modified (self.n_released + self.n_modified), self.extra_count))
+        print("n_rcvd       = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
+        print("n_accepted   = %d. Expected %d" % (self.n_accepted, (self.normal_count)))
+        print("n_rel_or_mod = %d. Expected %d" % (self.n_rel_or_mod, self.extra_count))
         self.receiver_conn.close()
         self.sender_conn.close()
         
@@ -1231,6 +1229,7 @@ class MobileAddressTest(MessagingHandler):
 
     def on_sendable(self, event):
         while self.n_sent < self.normal_count:
+            # send the normal messages
             message = Message(body="Message %d" % self.n_sent)
             self.sender.send(message)
             self.n_sent += 1
@@ -1245,13 +1244,6 @@ class MobileAddressTest(MessagingHandler):
             for i in range(self.extra_count):
                 self.sender.send(Message(body="Message %d" % self.n_sent))
                 self.n_sent += 1
-
-    def on_released(self, event):
-        self.n_released += 1
-        if self.n_released == self.rel_count:
-            self.receiver_conn.close()
-            self.sender_conn.close()
-            self.timer.cancel()
 
     def run(self):
         Container(self).run()
