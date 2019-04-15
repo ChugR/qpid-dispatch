@@ -1211,8 +1211,8 @@ class MobileAddressTest(MessagingHandler):
         self.error = title
         print("n_sent       = %d. Expected total:%d normal=%d, extra=%d" % \
             (self.n_sent, (self.normal_count + self.extra_count), self.normal_count, self.extra_count))
-        print("n_rcvd       = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
-        print("n_accepted   = %d. Expected %d" % (self.n_accepted, (self.normal_count)))
+        print("n_rcvd       = %d. Expected %d" % (self.n_rcvd,       self.normal_count))
+        print("n_accepted   = %d. Expected %d" % (self.n_accepted,   self.normal_count))
         print("n_rel_or_mod = %d. Expected %d" % (self.n_rel_or_mod, self.extra_count))
         self.receiver_conn.close()
         self.sender_conn.close()
@@ -1228,6 +1228,7 @@ class MobileAddressTest(MessagingHandler):
         self.sender        = event.container.create_sender(self.sender_conn, self.address)
 
     def on_sendable(self, event):
+        # sender event
         while self.n_sent < self.normal_count:
             # send the normal messages
             message = Message(body="Message %d" % self.n_sent)
@@ -1235,15 +1236,37 @@ class MobileAddressTest(MessagingHandler):
             self.n_sent += 1
 
     def on_message(self, event):
+        # receiver event
         self.n_rcvd += 1
 
     def on_settled(self, event):
-        self.n_settled += 1
-        if self.n_settled == self.normal_count:
+        # sender event
+        disp = str(event.delivery.remote_state)
+        if disp == "ACCEPTED":
+            self.n_accepted += 1
+        elif disp == "RELEASED" or disp == "MODIFIED":
+            self.n_rel_or_mod += 1
+        else:
+            fail_exit("Bad sender settlement: %s" % disp)
+
+        if self.n_sent == self.normal_count and self.n_accepted == self.normal_count:
+            # All normal messages are accounted. 
+            # Close receiver and launch extra messages into the router network.
             self.receiver.close()
             for i in range(self.extra_count):
                 self.sender.send(Message(body="Message %d" % self.n_sent))
                 self.n_sent += 1
+        
+        if self.n_accepted > self.normal_count:
+            fail_exit("Too many messages were accepted")
+        if self.n_rel_or_mod > self.extra_count:
+            fail_exit("Too many messages were release or modified")
+        
+        if self.n_rel_or_mod == self.extra_count:
+            # All extra messages are accounted. Exit with success.
+            self.timer.cancel()
+            self.receiver_conn.close()
+            self.sender_conn.close()
 
     def run(self):
         Container(self).run()
