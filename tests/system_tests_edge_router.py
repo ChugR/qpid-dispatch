@@ -1180,6 +1180,13 @@ class DynamicAddressTest(MessagingHandler):
 
 
 class MobileAddressTest(MessagingHandler):
+    """
+    Create a receiver over one connection and a sender over another.
+    Send a batch of messages that should arrive normally.
+    Close the receiver but not the receiver connection and then
+      send an extra batch of messages that should be released or modified.
+    Success is when message disposition counts add up correctly.
+    """
     def __init__(self, receiver_host, sender_host, address):
         super(MobileAddressTest, self).__init__()
         self.receiver_host = receiver_host
@@ -1192,19 +1199,28 @@ class MobileAddressTest(MessagingHandler):
         self.receiver      = None
         self.sender        = None
 
-        self.count         = 300
-        self.rel_count     = 50
+        self.normal_count  = 300
+        self.extra_count   = 50
         self.n_rcvd        = 0
         self.n_sent        = 0
         self.n_settled     = 0
         self.n_released    = 0
+        self.n_modified    = 0
         self.error         = None
 
-    def timeout(self):
-        self.error = "Timeout Expired - n_sent=%d n_rcvd=%d n_settled=%d n_released=%d addr=%s" % \
-                     (self.n_sent, self.n_rcvd, self.n_settled, self.n_released, self.address)
+    def fail_exit(self, title):
+        self.error = title
+        print("n_sent = %d. Expected %d. (Normal=%d, extra=%d)" % \
+            (self.n_sent, (self.normal_count + self.extra_count), self.normal_count, self.extra_count))
+        print("n_rcvd = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
+        print("n_settled = %d. Expected %d" % (self.n_rcvd, (self.normal_count + self.extra_count)))
+        print("n_released = %d, n_modified = %d, totaling = %d. Expected %d" % \
+            (self.n_released, self.n_modified (self.n_released + self.n_modified), self.extra_count))
         self.receiver_conn.close()
         self.sender_conn.close()
+        
+    def timeout(self):
+        self.fail_exit("Timeout Expired")
 
     def on_start(self, event):
         self.timer         = event.reactor.schedule(5.0, Timeout(self))
@@ -1214,7 +1230,7 @@ class MobileAddressTest(MessagingHandler):
         self.sender        = event.container.create_sender(self.sender_conn, self.address)
 
     def on_sendable(self, event):
-        while self.n_sent < self.count:
+        while self.n_sent < self.normal_count:
             message = Message(body="Message %d" % self.n_sent)
             self.sender.send(message)
             self.n_sent += 1
@@ -1224,9 +1240,9 @@ class MobileAddressTest(MessagingHandler):
 
     def on_settled(self, event):
         self.n_settled += 1
-        if self.n_settled == self.count:
+        if self.n_settled == self.normal_count:
             self.receiver.close()
-            for i in range(self.rel_count):
+            for i in range(self.extra_count):
                 self.sender.send(Message(body="Message %d" % self.n_sent))
                 self.n_sent += 1
 
