@@ -1209,11 +1209,14 @@ class MobileAddressTest(MessagingHandler):
 
     def fail_exit(self, title):
         self.error = title
+        print("MobileAddressTest fail: %s" % title)
+        print("address %s     " % self.address)
         print("n_sent       = %d. Expected total:%d normal=%d, extra=%d" % \
             (self.n_sent, (self.normal_count + self.extra_count), self.normal_count, self.extra_count))
         print("n_rcvd       = %d. Expected %d" % (self.n_rcvd,       self.normal_count))
         print("n_accepted   = %d. Expected %d" % (self.n_accepted,   self.normal_count))
         print("n_rel_or_mod = %d. Expected %d" % (self.n_rel_or_mod, self.extra_count))
+        self.timer.cancel()
         self.receiver_conn.close()
         self.sender_conn.close()
         
@@ -1240,14 +1243,23 @@ class MobileAddressTest(MessagingHandler):
         self.n_rcvd += 1
 
     def on_settled(self, event):
-        # sender event
-        disp = str(event.delivery.remote_state)
+        # Expect all settlement events at sender as remote state
+        rdisp = str(event.delivery.remote_state)
+        ldisp = str(event.delivery.local_state)
+        if event.sender == self.sender:
+            if event.delivery.remote_state is None:
+                print("??? Sender remote delivery state is None. Local = %s." % ldisp)
+        elif event.receiver == self.receiver:
+            print("??? Receiver on_settled. remote: %s, local: %s" % (rdisp, ldisp))
+
+        disp = rdisp
         if disp == "ACCEPTED":
             self.n_accepted += 1
         elif disp == "RELEASED" or disp == "MODIFIED":
             self.n_rel_or_mod += 1
         else:
-            fail_exit("Bad sender settlement: %s" % disp)
+            print("Bad sender settlement: %s, n_accepted: %d, n_rel_or_mod: %d" %
+                  (disp, self.n_accepted, self.n_rel_or_mod))
 
         if self.n_sent == self.normal_count and self.n_accepted == self.normal_count:
             # All normal messages are accounted. 
@@ -1258,9 +1270,9 @@ class MobileAddressTest(MessagingHandler):
                 self.n_sent += 1
         
         if self.n_accepted > self.normal_count:
-            fail_exit("Too many messages were accepted")
+            self.fail_exit("Too many messages were accepted")
         if self.n_rel_or_mod > self.extra_count:
-            fail_exit("Too many messages were release or modified")
+            self.fail_exit("Too many messages were release or modified")
         
         if self.n_rel_or_mod == self.extra_count:
             # All extra messages are accounted. Exit with success.
