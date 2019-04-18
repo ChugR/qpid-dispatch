@@ -353,11 +353,13 @@ class RouterTest(TestCase):
         self.assertEqual(None, test.error)
 
     def test_12_mobile_address_edge_to_interior(self):
-        test = MobileAddressTest(self.routers[0].addresses[0],
-                                 self.routers[2].addresses[0],
-                                 "test_12")
-        test.run()
-        self.assertEqual(None, test.error)
+        for i in range(50):
+            id = "test_12_%s" % i
+            test = MobileAddressTest(self.routers[0].addresses[0],
+                                    self.routers[2].addresses[0],
+                                    id)
+            test.run()
+            self.assertEqual(None, test.error)
 
     def test_13_mobile_address_edge_to_edge_one_interior(self):
         test = MobileAddressTest(self.routers[2].addresses[0],
