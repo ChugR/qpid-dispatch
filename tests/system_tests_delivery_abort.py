@@ -23,6 +23,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import unittest2 as unittest
+from datetime import datetime
+import sys
 from proton import Message, Timeout
 from system_test import TestCase, Qdrouterd, main_module
 from proton.handlers import MessagingHandler
@@ -68,7 +70,7 @@ class RouterTest(TestCase):
         cls.routers[1].wait_router_connected('A')
 
 
-    def test_01_message_route_truncated_one_router(self):
+    def tesxt_01_message_route_truncated_one_router(self):
         test = MessageRouteTruncateTest(self.routers[0].addresses[0],
                                         self.routers[0].addresses[0],
                                         "addr_01")
@@ -76,7 +78,7 @@ class RouterTest(TestCase):
         self.assertEqual(None, test.error)
 
 
-    def test_02_message_route_truncated_two_routers(self):
+    def tesxt_02_message_route_truncated_two_routers(self):
         test = MessageRouteTruncateTest(self.routers[0].addresses[0],
                                         self.routers[1].addresses[0],
                                         "addr_02")
@@ -84,7 +86,7 @@ class RouterTest(TestCase):
         self.assertEqual(None, test.error)
 
 
-    def test_03_link_route_truncated_one_router(self):
+    def tesxt_03_link_route_truncated_one_router(self):
         test = LinkRouteTruncateTest(self.routers[0].addresses[0],
                                      self.routers[0].addresses[1],
                                      "link.addr_03",
@@ -93,7 +95,7 @@ class RouterTest(TestCase):
         self.assertEqual(None, test.error)
 
 
-    def test_04_link_route_truncated_two_routers(self):
+    def tesxt_04_link_route_truncated_two_routers(self):
         test = LinkRouteTruncateTest(self.routers[1].addresses[0],
                                      self.routers[0].addresses[1],
                                      "link.addr_04",
@@ -107,6 +109,8 @@ class RouterTest(TestCase):
                                      self.routers[0].addresses[0],
                                      "addr_05")
         test.run()
+        if test.error is not None:
+            print(str(test.logger))
         self.assertEqual(None, test.error)
 
 
@@ -118,7 +122,7 @@ class RouterTest(TestCase):
         self.assertEqual(None, test.error)
 
 
-    def test_07_multicast_truncate_one_router(self):
+    def tesxt_07_multicast_truncate_one_router(self):
         test = MulticastTruncateTest(self.routers[0].addresses[0],
                                      self.routers[0].addresses[0],
                                      self.routers[0].addresses[0],
@@ -390,12 +394,36 @@ class LinkRouteTruncateTest(MessagingHandler):
         container.run()
 
 
+class Logger(object):
+    """
+    Keep an in-memory list of timestamped messages.
+    Print only on request successful tests are not encumbered
+    with print detail.
+    """
+    PRINT_TO_CONSOLE = True
+    def __init__(self):
+        self.msgs = []
+
+    def log(self, msg):
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f")
+        m = "%s %s" % (ts, msg)
+        self.msgs.append(m)
+        if Logger.PRINT_TO_CONSOLE:
+            print(m)
+            sys.stdout.flush()
+
+    def __str__(self):
+        return '\n'.join(self.msgs)
+
+
 class MessageRouteAbortTest(MessagingHandler):
     def __init__(self, sender_host, receiver_host, address):
         super(MessageRouteAbortTest, self).__init__()
         self.sender_host      = sender_host
         self.receiver_host    = receiver_host
         self.address          = address
+        
+        self.logger        = Logger()
 
         self.sender_conn   = None
         self.receiver_conn = None
@@ -404,40 +432,47 @@ class MessageRouteAbortTest(MessagingHandler):
         self.receiver      = None
         self.delivery      = None
 
-        self.program       = [('D', 10), ('D', 10), ('A', 10), ('A', 10), ('D', 10), ('D', 10),
-                              ('A', 100), ('D', 100),
-                              ('A', 1000), ('A', 1000), ('A', 1000), ('A', 1000), ('A', 1000), ('D', 1000),
-                              ('A', 10000), ('A', 10000), ('A', 10000), ('A', 10000), ('A', 10000), ('D', 10000),
-                              ('A', 100000), ('A', 100000), ('A', 100000), ('A', 100000), ('A', 100000), ('D', 100000), ('F', 10)]
+        self.program       = [('D', 10), ('D', 20), ('A', 30), ('A', 40), ('D', 50), ('D', 60),
+                              ('A', 100), ('D', 200),
+                              ('A', 1000), ('A', 2000), ('A', 3000), ('A', 4000), ('A', 5000), ('D', 6000),
+                              ('A', 10000), ('A', 20000), ('A', 30000), ('A', 40000), ('A', 50000), ('D', 60000),
+                              ('A', 100000), ('A', 200000), ('A', 300000), ('A', 400000), ('A', 500000), ('D', 600000), ('F', 10)]
         self.result        = []
-        self.expected_result = [10, 10, 10, 10, 100, 1000, 10000, 100000]
+        self.expected_result = [10, 20, 50, 60, 200, 6000, 60000, 600000]
 
-    def timeout(self):
-        self.error = "Timeout Expired - Unprocessed Ops: %r, Result: %r" % (self.program, self.result)
-        self.sender_conn.close()
+    def fail_exit(self, title):
+        self.error = title
+        self.logger.log("MessageRouteAbortTest result:ERROR: %s" % title)
+        self.logger.log("address %s     " % self.address)
+        self.logger.log("program         = %s" % (self.program))
+        self.logger.log("result          = %s" % (self.result))
+        self.logger.log("expected_result = %s" % (self.expected_result))
+        self.timer.cancel()
         self.receiver_conn.close()
+        self.sender_conn.close()
+
+    def on_timer_task(self, event):
+        self.fail_exit("Timeout Expired")
 
     def on_start(self, event):
-        self.timer         = event.reactor.schedule(10.0, Timeout(self))
+        self.logger.log("on_start address=%s" % self.address)
+        self.timer         = event.reactor.schedule(10.0, self)
         self.sender_conn   = event.container.connect(self.sender_host)
         self.receiver_conn = event.container.connect(self.receiver_host)
         self.sender1       = event.container.create_sender(self.sender_conn, self.address, name="S1")
         self.receiver      = event.container.create_receiver(self.receiver_conn, self.address)
 
     def send(self):
+        self.logger.log("send")
         op, size = self.program.pop(0) if len(self.program) > 0 else (None, None)
 
         if op == None:
+            self.logger.log("send done")
             return
 
-        body = ""
-        if op == 'F':
-            body = "FINISH"
-        else:
-            for i in range(size // 10):
-                body += "0123456789"
-        msg = Message(body=body)
+        msg = Message(body="FINISH" if op == 'F' else ("%s %06d  " % (op, size)) * (size // 10))
         
+        self.logger.log("send %s len %d" % (op, size))
         if op in 'DF':
             delivery = self.sender1.send(msg)
 
@@ -447,25 +482,32 @@ class MessageRouteAbortTest(MessagingHandler):
             self.sender1.stream(encoded)
 
     def finish(self):
+        self.logger.log("finish")
         if self.result != self.expected_result:
-            self.error = "Expected: %r, Actual: %r" % (self.expected_result, self.result)
+            fail_exit("result != expected_result")
         self.sender_conn.close()
         self.receiver_conn.close()
         self.timer.cancel()
         
     def on_sendable(self, event):
+        self.logger.log("on_sendable")
         if event.sender == self.sender1:
             if self.delivery:
+                self.logger.log("on_sendable Aborting delivery")
                 self.delivery.abort()
                 self.delivery = None
             else:
+                self.logger.log("on_sendable send")
                 self.send()
 
     def on_message(self, event):
+        self.logger.log("on_message")
         m = event.message
         if m.body == "FINISH":
+            self.logger.log("on_message finish")
             self.finish()
         else:
+            self.logger.log("on_message not finished")
             self.result.append(len(m.body))
             self.send()
 
