@@ -1,3 +1,5 @@
+#ifndef __hw_clock_h__
+#define __hw_clock_h__ 1
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -72,3 +74,5 @@ void qd_hw_clock_stop(qd_hw_clock_stats_t* stats);
  * Report accumulated statistics
  */
 void qd_hw_clock_report(qd_hw_clock_stats_t* stats, char * bufptr, int bufsize);
+
+#endif

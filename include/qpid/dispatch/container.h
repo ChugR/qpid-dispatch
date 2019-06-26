@@ -34,6 +34,7 @@
 #include <qpid/dispatch/server.h>
 #include <qpid/dispatch/ctools.h>
 #include <qpid/dispatch/alloc.h>
+#include <qpid/dispatch/hw_clock.h>
 
 typedef uint8_t qd_dist_mode_t;
 #define QD_DIST_COPY 0x01
@@ -198,6 +199,9 @@ bool qd_link_drain_changed(qd_link_t *link, bool *mode);
 void qd_link_free(qd_link_t *link);
 void *qd_link_get_node_context(const qd_link_t *link);
 void qd_link_restart_rx(qd_link_t *link);
+
+qd_hw_clock_stats_t* qd_link_hw_clock_rx_stats(qd_link_t *link);
+qd_hw_clock_stats_t* qd_link_hw_clock_tx_stats(qd_link_t *link);
 
 ///@}
 #endif

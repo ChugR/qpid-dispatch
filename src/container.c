@@ -34,6 +34,7 @@
 #include <qpid/dispatch/threading.h>
 #include <qpid/dispatch/iterator.h>
 #include <qpid/dispatch/log.h>
+#include <qpid/dispatch/hw_clock.h>
 
 /** Instance of a node type in a container */
 struct qd_node_t {
@@ -62,6 +63,8 @@ struct qd_link_t {
     pn_snd_settle_mode_t        remote_snd_settle_mode;
     qd_link_ref_list_t          ref_list;
     bool                        q2_limit_unbounded;
+    qd_hw_clock_stats_t         rx_stats;
+    qd_hw_clock_stats_t         tx_stats;
 };
 
 DEQ_DECLARE(qd_link_t, qd_link_list_t);
@@ -126,6 +129,9 @@ static void setup_outgoing_link(qd_container_t *container, pn_link_t *pn_link)
 
     pn_link_set_context(pn_link, link);
     node->ntype->outgoing_handler(node->context, link);
+
+    qd_hw_clock_init(&link->rx_stats);
+    qd_hw_clock_init(&link->tx_stats);
 }
 
 
@@ -164,6 +170,9 @@ static void setup_incoming_link(qd_container_t *container, pn_link_t *pn_link)
 
     pn_link_set_context(pn_link, link);
     node->ntype->incoming_handler(node->context, link);
+
+    qd_hw_clock_init(&link->rx_stats);
+    qd_hw_clock_init(&link->tx_stats);
 }
 
 
@@ -877,6 +886,9 @@ qd_link_t *qd_link(qd_node_t *node, qd_connection_t *conn, qd_direction_t dir, c
     link->remote_snd_settle_mode = pn_link_remote_snd_settle_mode(link->pn_link);
 
     pn_link_set_context(link->pn_link, link);
+    
+    qd_hw_clock_init(&link->rx_stats);
+    qd_hw_clock_init(&link->tx_stats);
 
     return link;
 }
@@ -906,7 +918,15 @@ void qd_link_free(qd_link_t *link)
             link_ref = DEQ_HEAD (*list);
         }
     }
-
+    //
+    char buffer[200];
+    qd_hw_clock_report(&link->tx_stats, buffer, sizeof(buffer));
+    if (buffer[0] != '\0')
+        qd_log(container->log_source, QD_LOG_ERROR, "Link (%14p) TX stats %s", (void*)link, buffer);
+    qd_hw_clock_report(&link->rx_stats, buffer, sizeof(buffer));
+    if (buffer[0] != '\0')
+        qd_log(container->log_source, QD_LOG_ERROR, "Link (%14p) RX stats %s", (void*)link, buffer);
+    //
     free_qd_link_t(link);
 }
 
@@ -1059,4 +1079,14 @@ bool qd_link_drain_changed(qd_link_t *link, bool *mode)
 void *qd_link_get_node_context(const qd_link_t *link)
 {
     return (link && link->node) ? link->node->context : 0;
+}
+
+qd_hw_clock_stats_t* qd_link_hw_clock_rx_stats(qd_link_t *link)
+{
+    return &link->rx_stats;
+}
+
+qd_hw_clock_stats_t* qd_link_hw_clock_tx_stats(qd_link_t *link)
+{
+    return &link->tx_stats;
 }
