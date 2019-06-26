@@ -185,15 +185,5 @@ void *router_core_thread(void *arg)
             qdr_post_general_work_CT(core, work);
         }
     }
-
-    qd_log(core->log, QD_LOG_INFO, "Router Core thread exited");
-//
-    qd_log(core->log, QD_LOG_ERROR, "Micro timing stats");
-    char buffer[200];
-    qd_hw_clock_report(&tx_stats, buffer, sizeof(buffer));
-    qd_log(core->log, QD_LOG_ERROR, "TX stats %s", buffer);
-    qd_hw_clock_report(&rx_stats, buffer, sizeof(buffer));
-    qd_log(core->log, QD_LOG_ERROR, "TX stats %s", buffer);
-//
     return 0;
 }

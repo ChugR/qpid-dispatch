@@ -85,16 +85,20 @@ void qd_hw_clock_stop(qd_hw_clock_stats_t* stats)
  */
 void qd_hw_clock_report(qd_hw_clock_stats_t* stats, char * bufptr, int bufsize)
 {
-    size_t j = 0;
-    j += snprintf(bufptr + j, bufsize - j, "%s", " (nS): avg: ");
-    j += snprintf(bufptr + j, bufsize - j, "%"PRId64, stats->total_time/stats->total_ct);
+    if (stats->total_ct == 0) {
+        *bufptr = '\0';
+    } else {
+        size_t j = 0;
+        j += snprintf(bufptr + j, bufsize - j, "%s", " (nS): avg: ");
+        j += snprintf(bufptr + j, bufsize - j, "%11"PRId64, stats->total_time/stats->total_ct);
 
-    j += snprintf(bufptr + j, bufsize - j, "%s", ", min: ");
-    j += snprintf(bufptr + j, bufsize - j, "%"PRId64, stats->min_time);
+        j += snprintf(bufptr + j, bufsize - j, "%s", ", min: ");
+        j += snprintf(bufptr + j, bufsize - j, "%11"PRId64, stats->min_time);
 
-    j += snprintf(bufptr + j, bufsize - j, "%s", ", max: ");
-    j += snprintf(bufptr + j, bufsize - j, "%"PRId64, stats->max_time);
+        j += snprintf(bufptr + j, bufsize - j, "%s", ", max: ");
+        j += snprintf(bufptr + j, bufsize - j, "%11"PRId64, stats->max_time);
 
-    j += snprintf(bufptr + j, bufsize - j, "%s", ", n_samples: ");
-    j += snprintf(bufptr + j, bufsize - j, "%"PRId64, stats->total_ct);
+        j += snprintf(bufptr + j, bufsize - j, "%s", ", n_samples: ");
+        j += snprintf(bufptr + j, bufsize - j, "%11"PRId64, stats->total_ct);
+    }
 }

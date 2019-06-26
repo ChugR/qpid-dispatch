@@ -33,12 +33,6 @@
 #include <inttypes.h>
 
 
-//
-#include <qpid/dispatch/hw_clock.h>
-qd_hw_clock_stats_t rx_stats = QD_HW_CLOCK_STATS_ZERO;
-qd_hw_clock_stats_t tx_stats = QD_HW_CLOCK_STATS_ZERO;
-//
-
 const char *QD_ROUTER_NODE_TYPE = "router.node";
 const char *QD_ROUTER_ADDRESS_TYPE = "router.address";
 const char *QD_ROUTER_LINK_TYPE = "router.link";
@@ -339,9 +333,9 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
     //
     // Receive the message into a local representation.
     //
-    qd_hw_clock_start(&rx_stats);
+    qd_hw_clock_start(qd_link_hw_clock_rx_stats(link));
     qd_message_t   *msg   = qd_message_receive(pnd);
-    qd_hw_clock_stop(&rx_stats);
+    qd_hw_clock_stop(qd_link_hw_clock_rx_stats(link));
 
     bool receive_complete = qd_message_receive_complete(msg);
 
@@ -1614,9 +1608,9 @@ static uint64_t CORE_link_deliver(void *context, qdr_link_t *link, qdr_delivery_
     qd_message_t *msg_out = qdr_delivery_message(dlv);
 
     {
-        qd_hw_clock_start(&tx_stats);
+        qd_hw_clock_start(qd_link_hw_clock_tx_stats(qlink));
         qd_message_send(msg_out, qlink, qdr_link_strip_annotations_out(link), &restart_rx, &q3_stalled);
-        qd_hw_clock_stop(&tx_stats);
+        qd_hw_clock_stop(qd_link_hw_clock_tx_stats(qlink));
     }
 
     if (q3_stalled)
