@@ -121,10 +121,8 @@ void qdr_modules_finalize(qdr_core_t *core)
 
 //
 #include <qpid/dispatch/hw_clock.h>
-extern int64_t debug_rx_total_time;
-extern int     debug_rx_total_ct;
-extern int64_t debug_tx_total_time;
-extern int     debug_tx_total_ct;
+extern qd_hw_clock_stats_t rx_stats;
+extern qd_hw_clock_stats_t tx_stats;
 //
 
 
@@ -189,10 +187,13 @@ void *router_core_thread(void *arg)
     }
 
     qd_log(core->log, QD_LOG_INFO, "Router Core thread exited");
-    qd_log(core->log, QD_LOG_ERROR,
-           "Avg TX time: %.3f usec  Avg RX time: %.3f usec",
-           (double)debug_tx_total_time/debug_tx_total_ct,
-           (double)debug_rx_total_time/debug_rx_total_ct);
-           
+//
+    qd_log(core->log, QD_LOG_ERROR, "Micro timing stats");
+    char buffer[200];
+    qd_hw_clock_report(&tx_stats, buffer, sizeof(buffer));
+    qd_log(core->log, QD_LOG_ERROR, "TX stats %s", buffer);
+    qd_hw_clock_report(&rx_stats, buffer, sizeof(buffer));
+    qd_log(core->log, QD_LOG_ERROR, "TX stats %s", buffer);
+//
     return 0;
 }
