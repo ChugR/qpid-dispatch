@@ -879,10 +879,15 @@ static qd_field_location_t *qd_message_field_location(qd_message_t *msg, qd_mess
     return 0;
 }
 
+#include <qpid/dispatch/hw_clock.h>
+qd_hw_clock_stats_t malloc_stats = QD_HW_CLOCK_STATS_ZERO;
 
 qd_message_t *qd_message()
 {
+    qd_hw_clock_start(&malloc_stats);
     qd_message_pvt_t *msg = (qd_message_pvt_t*) new_qd_message_t();
+    qd_hw_clock_stop(&malloc_stats);
+    
     if (!msg)
         return 0;
 

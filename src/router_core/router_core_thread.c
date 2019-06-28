@@ -123,6 +123,7 @@ void qdr_modules_finalize(qdr_core_t *core)
 #include <qpid/dispatch/hw_clock.h>
 extern qd_hw_clock_stats_t rx_stats;
 extern qd_hw_clock_stats_t tx_stats;
+extern qd_hw_clock_stats_t malloc_stats;
 //
 
 
@@ -185,5 +186,11 @@ void *router_core_thread(void *arg)
             qdr_post_general_work_CT(core, work);
         }
     }
+    //
+    qd_log(core->log, QD_LOG_ERROR, "Micro timing stats");
+    char buffer[200];
+    qd_hw_clock_report(&malloc_stats, buffer, sizeof(buffer));
+    qd_log(core->log, QD_LOG_ERROR, "new_qd_buffer_t stats %s", buffer);
+    //
     return 0;
 }
