@@ -28,6 +28,7 @@
 #include <qpid/dispatch/alloc.h>
 #include <qpid/dispatch/router.h>
 #include <qpid/dispatch/error.h>
+#include <qpid/dispatch/hw_clock.h>
 
 #include <ctype.h>
 
@@ -45,6 +46,7 @@ static qd_log_source_t *log_source = 0;
 static PyObject        *dispatch_module = 0;
 static PyObject        *message_type = 0;
 static PyObject        *dispatch_python_pkgdir = 0;
+qd_hw_clock_stats_t pylock_stats = QD_HW_CLOCK_STATS_ZERO;
 
 static void qd_python_setup(void);
 
@@ -779,6 +781,7 @@ static void qd_python_setup(void)
 qd_python_lock_state_t qd_python_lock(void)
 {
     sys_mutex_lock(ilock);
+    qd_hw_clock_start(&pylock_stats);
     lock_held = true;
     return 0;
 }
@@ -786,5 +789,6 @@ qd_python_lock_state_t qd_python_lock(void)
 void qd_python_unlock(qd_python_lock_state_t lock_state)
 {
     lock_held = false;
+    qd_hw_clock_stop(&pylock_stats);
     sys_mutex_unlock(ilock);
 }

@@ -124,6 +124,7 @@ void qdr_modules_finalize(qdr_core_t *core)
 extern qd_hw_clock_stats_t rx_stats;
 extern qd_hw_clock_stats_t tx_stats;
 extern qd_hw_clock_stats_t malloc_stats;
+extern qd_hw_clock_stats_t pylock_stats;
 //
 
 
@@ -191,6 +192,8 @@ void *router_core_thread(void *arg)
     char buffer[200];
     qd_hw_clock_report(&malloc_stats, buffer, sizeof(buffer));
     qd_log(core->log, QD_LOG_ERROR, "new_qd_buffer_t stats %s", buffer);
+    qd_hw_clock_report(&pylock_stats, buffer, sizeof(buffer));
+    qd_log(core->log, QD_LOG_ERROR, "python global   stats %s", buffer);
     //
     return 0;
 }
