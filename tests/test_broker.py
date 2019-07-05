@@ -37,6 +37,31 @@ from proton.reactor import Container
 from proton.reactor import AtMostOnce
 
 from system_test import TIMEOUT
+import sys
+from datetime import datetime
+
+class Logger(object):
+    """
+    Keep an in-memory list of timestamped messages.
+    Print only on request successful tests are not encumbered
+    with print detail.
+    """
+    PRINT_TO_CONSOLE = True
+    def __init__(self, prefix=""):
+        self.msgs = []
+        self.prefix = prefix
+
+    def log(self, msg):
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f")
+        m = "%s %s %s" % (ts, self.prefix, msg)
+        self.msgs.append(m)
+        if Logger.PRINT_TO_CONSOLE:
+            print(m)
+            sys.stdout.flush()
+
+    def __str__(self):
+        return '\n'.join(self.msgs)
+
 
 
 class FakeBroker(MessagingHandler):
@@ -100,11 +125,13 @@ class FakeBroker(MessagingHandler):
         self._thread.daemon = True
         self._stop_thread = False
         self._thread.start()
+        self.logger = Logger("FakeBroker:")
+        self.logger.log("logger started")
 
     def _main(self):
         self._container.timeout = 1.0
         self._container.start()
-
+        self.logger.log("Entering container.process() loop")
         while self._container.process():
             if self._stop_thread:
                 if self.acceptor:
@@ -115,6 +142,7 @@ class FakeBroker(MessagingHandler):
                 self._connections = []
 
     def join(self):
+        self.logger.log("join")
         self._stop_thread = True
         self._container.wakeup()
         self._thread.join(timeout=TIMEOUT)
@@ -124,6 +152,7 @@ class FakeBroker(MessagingHandler):
             raise Exception(self._error)
 
     def on_start(self, event):
+        self.logger.log("on_start")
         self.acceptor = event.container.listen(self.url)
 
     def _queue(self, address):
@@ -132,6 +161,7 @@ class FakeBroker(MessagingHandler):
         return self.queues[address]
 
     def on_link_opening(self, event):
+        self.logger.log("on_link_opening")
         if event.link.is_sender:
             if event.link.remote_source.dynamic:
                 address = str(uuid.uuid4())
@@ -150,29 +180,36 @@ class FakeBroker(MessagingHandler):
             del self.queues[link.source.address]
 
     def on_link_closing(self, event):
+        self.logger.log("on_link_closing")
         if event.link.is_sender:
             self._unsubscribe(event.link)
 
     def on_connection_opening(self, event):
+        self.logger.log("on_connection_opening")
         pn_conn = event.connection
         pn_conn.container = self._container.container_id
 
     def on_connection_opened(self, event):
+        self.logger.log("on_connection_opened")
         self._connections.append(event.connection)
 
     def on_connection_closing(self, event):
+        self.logger.log("")
         self.remove_stale_consumers(event.connection)
 
     def on_connection_closed(self, event):
+        self.logger.log("on_connection_closing")
         try:
             self._connections.remove(event.connection)
         except ValueError:
             pass
 
     def on_disconnected(self, event):
+        self.logger.log("on_disconnected")
         self.remove_stale_consumers(event.connection)
 
     def remove_stale_consumers(self, connection):
+        self.logger.log("remove_stale_consumers")
         l = connection.link_head(Endpoint.REMOTE_ACTIVE)
         while l:
             if l.is_sender:
@@ -180,9 +217,11 @@ class FakeBroker(MessagingHandler):
             l = l.next(Endpoint.REMOTE_ACTIVE)
 
     def on_sendable(self, event):
+        self.logger.log("on_sendable")
         self.out_count += self._queue(event.link.source.address).dispatch(event.link)
 
     def on_message(self, event):
+        self.logger("on_message")
         self.in_count += 1
         self.out_count += self._queue(event.link.target.address).publish(event.message)
 

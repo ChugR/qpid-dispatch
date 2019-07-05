@@ -35,6 +35,30 @@ from proton.utils import BlockingConnection, LinkDetached, SyncRequestResponse
 from qpid_dispatch_internal.policy.policy_util import is_ipv6_enabled
 from qpid_dispatch_internal.compat import dict_iteritems
 from test_broker import FakeBroker
+from datetime import datetime
+
+class Logger(object):
+    """
+    Keep an in-memory list of timestamped messages.
+    Print only on request successful tests are not encumbered
+    with print detail.
+    """
+    PRINT_TO_CONSOLE = True
+    def __init__(self, prefix=""):
+        self.msgs = []
+        self.prefix = prefix
+
+    def log(self, msg):
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f")
+        m = "%s %s %s" % (ts, self.prefix, msg)
+        self.msgs.append(m)
+        if Logger.PRINT_TO_CONSOLE:
+            print(m)
+
+    def __str__(self):
+        return '\n'.join(self.msgs)
+
+
 
 class AbsoluteConnectionCountLimit(TestCase):
     """
@@ -1329,6 +1353,8 @@ class ConnectorPolicyClient(FakeBroker):
         self.req_close_sender = False
         self.req_close_receiver = False
         self.req_anonymous_sender = False
+        self.logger = Logger("ConnectorPolicyClient")
+        self.logger.log("ConnectorPolicyClient instantiated")
 
     def _main(self):
         self._container.timeout = 1.0
@@ -1337,41 +1363,54 @@ class ConnectorPolicyClient(FakeBroker):
         keep_running = True
         while keep_running:
             try:
+                self.logger.log("enter _container.process")
                 self._container.process()
+                self.logger.log("exit  _container.process")
                 if not self.request_in_flight:
                     if self.sender_request != "":
+                        self.logger.log("sender_request")
                         sndr = self._container.create_sender(
                                 self._connections[0], self.sender_request)
                         self.senders.append(sndr)
                         self.request_in_flight = True
                         self.sender_request = ""
                     elif self.receiver_request != "":
+                        self.logger.log("receiver_request")
                         rcvr = self._container.create_receiver(
                                 self._connections[0], self.receiver_request)
                         self.receivers.append(rcvr)
                         self.request_in_flight = True
                         self.receiver_request = ""
                     elif self.req_close_sender:
+                        self.logger.log("req_close_sender")
                         self.senders[0].close()
                         self.req_close_sender = False
                     elif self.req_close_receiver:
+                        self.logger.log("req_close_receiver")
                         self.receivers[0].close()
                         self.req_close_receiver = False
                     elif self.req_anonymous_sender:
+                        self.logger.log("req_anonymous_sender")
                         sndr = self._container.create_sender(
                                 self._connections[0], name="anon")
                         self.senders.append(sndr)
                         self.request_in_flight = True
                         self.req_anonymous_sender = False
+                else:
+                    self.logger.log("request_in_flight...")
 
             except:
+                self.logger.log("main except")
                 self._stop_thread = True
                 keep_running = False
             if self._stop_thread:
+                self.logger.log("main stop_thread")
                 keep_running = False
         self.main_exited = True
+        self.logger.log("main exited")
 
     def join(self):
+        self.logger.log("join")
         if not self._stop_thread:
             self._stop_thread = True
             self._container.wakeup()
@@ -1379,31 +1418,39 @@ class ConnectorPolicyClient(FakeBroker):
             self._thread.join(timeout=5)
 
     def on_start(self, event):
-        self.timer    = event.reactor.schedule(60, Timeout(self))        
+        self.logger.log("on_start")
+        self.timer    = event.reactor.schedule(60, Timeout(self))
         self.acceptor = event.container.listen(self.url)
 
     def timeout(self):
+        self.logger.log("timeout")
         self._error = "Timeout Expired"
 
     def on_connection_opening(self, event):
+        self.logger.log("on_connection_opening")
         self.connection_opening += 1
         super(ConnectorPolicyClient, self).on_connection_opening(event)
 
     def on_connection_opened(self, event):
+        self.logger.log("on_connection_opened")
         self.connection_opened += 1
         super(ConnectorPolicyClient, self).on_connection_opened(event)
 
     def on_connection_error(self, event):
+        self.logger.log("on_connection_error")
         self.connection_error += 1
 
     def on_link_opened(self, event):
+        self.logger.log("on_link_opened")
         self.request_in_flight = False
 
     def on_link_error(self, event):
+        self.logger.log("on_link_error")
         self.link_error = True
         self.request_in_flight = False
 
     def try_sender(self, addr):
+        self.logger.log("try_sender")
         self.link_error = False
         self.sender_request = addr
         while (self.sender_request == addr or self.request_in_flight) \
@@ -1413,6 +1460,7 @@ class ConnectorPolicyClient(FakeBroker):
         return self.link_error == False
 
     def try_receiver(self, addr):
+        self.logger.log("try_receiver")
         self.link_error = False
         self.receiver_request = addr
         while (self.receiver_request == addr or self.request_in_flight) \
@@ -1422,16 +1470,19 @@ class ConnectorPolicyClient(FakeBroker):
         return self.link_error == False
 
     def close_sender(self):
+        self.logger.log("close_sender")
         self.req_close_sender = True
         while self.req_close_sender:
             time.sleep(0.05)
 
     def close_receiver(self):
+        self.logger.log("close_receiver")
         self.req_close_receiver = True
         while self.req_close_receiver:
             time.sleep(0.05)
 
     def try_anonymous_sender(self):
+        self.logger.log("try_anonymous_sender")
         self.link_error = False
         self.req_anonymous_sender = True
         while (self.req_anonymous_sender or self.request_in_flight) \
@@ -1487,9 +1538,12 @@ class ConnectorPolicySrcTgt(TestCase):
 
     def test_31_connector_policy(self):
         url = "127.0.0.1:%d" % self.remoteListenerPort
+        logger = Logger("test_31_connector_policy")
+        logger.log("test_31 starting")
         cpc = ConnectorPolicyClient(url, "cpc")
         while cpc.connection_opened == 0 and cpc._error == None:
             time.sleep(0.1)
+        logger.log("Connection opened")
         time.sleep(0.05)
         self.assertTrue(cpc.connection_error == 0) # expect connection to stay up
         self.assertTrue(cpc._error is None)
