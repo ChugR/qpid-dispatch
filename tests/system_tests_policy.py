@@ -1340,7 +1340,6 @@ class ConnectorPolicyClient(FakeBroker):
     allows certain sources and targets.
     '''
     def __init__(self, url, container_id=None):
-        super(ConnectorPolicyClient, self).__init__(url, container_id)
         self.connection_opening = 0
         self.connection_opened = 0
         self.connection_error = 0
@@ -1356,6 +1355,7 @@ class ConnectorPolicyClient(FakeBroker):
         self.req_anonymous_sender = False
         self.logger = Logger("ConnectorPolicyClient")
         self.logger.log("ConnectorPolicyClient instantiated")
+        super(ConnectorPolicyClient, self).__init__(url, container_id)
 
     def _main(self):
         self._container.timeout = 1.0
@@ -1400,8 +1400,8 @@ class ConnectorPolicyClient(FakeBroker):
                 else:
                     self.logger.log("request_in_flight...")
 
-            except:
-                self.logger.log("main except")
+            except Exception as e:
+                self.logger.log("main except: %s\n" % (e))
                 self._stop_thread = True
                 keep_running = False
             if self._stop_thread:
