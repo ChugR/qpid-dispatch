@@ -112,6 +112,8 @@ class FakeBroker(MessagingHandler):
 
     def __init__(self, url, container_id=None):
         super(FakeBroker, self).__init__()
+        self.logger = Logger("FakeBroker:")
+        self.logger.log("FakeBroker created on url: %s" % url)
         self.url = url
         self.queues = {}
         self.acceptor = None
@@ -125,8 +127,7 @@ class FakeBroker(MessagingHandler):
         self._thread.daemon = True
         self._stop_thread = False
         self._thread.start()
-        self.logger = Logger("FakeBroker:")
-        self.logger.log("logger started")
+        self.logger.log("Done init")
 
     def _main(self):
         self._container.timeout = 1.0

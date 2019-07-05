@@ -26,7 +26,8 @@ import unittest as unittest
 import os, json, re, signal
 import time
 
-from system_test import TestCase, Qdrouterd, main_module, Process, TIMEOUT, DIR
+from system_test import TestCase, Qdrouterd, main_module, Process, TIMEOUT, DIR, Process
+from threading import Event
 from subprocess import PIPE, STDOUT
 from proton import ConnectionException, Timeout, Url, symbol
 from proton.handlers import MessagingHandler
