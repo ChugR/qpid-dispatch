@@ -1234,6 +1234,9 @@ static int AMQP_closed_handler(void *type_context, qd_connection_t *conn, void *
         qdr_connection_set_context(qdrc, NULL);
         qdr_connection_closed(qdrc);
         qd_connection_set_context(conn, 0);
+        if (conn->transport_closed) {
+            qd_connection_free(conn);
+        }
     }
 
     return 0;

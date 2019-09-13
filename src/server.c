@@ -798,7 +798,7 @@ bool qd_connector_has_failover_info(qd_connector_t* ct)
 }
 
 
-static void qd_connection_free(qd_connection_t *ctx)
+void qd_connection_free(qd_connection_t *ctx)
 {
     qd_server_t *qd_server = ctx->server;
 
@@ -1011,7 +1011,11 @@ static void *thread_run(void *arg)
             /* Free the connection after all other processing is complete */
             if (qd_conn && pn_event_type(e) == PN_TRANSPORT_CLOSED) {
                 pn_connection_set_context(pn_conn, NULL);
-                qd_connection_free(qd_conn);
+                if (qd_conn->user_context) {
+                    qd_conn->transport_closed = true;
+                } else {
+                    qd_connection_free(qd_conn);
+                }
                 qd_conn = 0;
             }
         }
