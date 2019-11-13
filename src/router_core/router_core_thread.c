@@ -59,14 +59,17 @@ void qdr_register_core_module(const char *name, qdrc_module_enable_t enable, qdr
 
 static void qdr_activate_connections_CT(qdr_core_t *core)
 {
-    qdr_connection_t *conn = DEQ_HEAD(core->connections_to_activate);
-    while (conn) {
+    while (true) {
+        sys_mutex_lock(qd_server_get_activation_lock(core->qd->server));
+        qdr_connection_t *conn = DEQ_HEAD(core->connections_to_activate);
+        if (!conn) {
+            sys_mutex_unlock(qd_server_get_activation_lock(core->qd->server));
+            break;
+        }
         DEQ_REMOVE_HEAD_N(ACTIVATE, core->connections_to_activate);
         conn->in_activate_list = false;
-        sys_mutex_lock(qd_server_get_activation_lock(core->qd->server));
         qd_server_activate((qd_connection_t*) qdr_connection_get_context(conn));
         sys_mutex_unlock(qd_server_get_activation_lock(core->qd->server));
-        conn = DEQ_HEAD(core->connections_to_activate);
     }
 }
 
