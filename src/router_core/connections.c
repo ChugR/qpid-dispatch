@@ -86,6 +86,8 @@ qdr_connection_t *qdr_connection_opened(qdr_core_t            *core,
     qdr_action_t     *action = qdr_action(qdr_connection_opened_CT, "connection_opened");
     qdr_connection_t *conn   = new_qdr_connection_t();
 
+    qd_log(core->log, QD_LOG_CRITICAL, "qdr_connection_opened() new_qdr_connection=%p", (void*)conn);
+
     ZERO(conn);
     conn->identity              = management_id;
     conn->connection_info       = connection_info;
@@ -516,6 +518,9 @@ qdr_link_t *qdr_link_first_attach(qdr_connection_t *conn,
     qdr_link_t     *link           = new_qdr_link_t();
     qdr_terminus_t *local_terminus = dir == QD_OUTGOING ? source : target;
 
+    qd_log(conn->core->log, QD_LOG_CRITICAL, "New link first attach: conn=%p, new_qdr_link_t %p", 
+           (void*)conn, (void*)link);
+
     ZERO(link);
     link->core = conn->core;
     link->identity = qdr_identifier(conn->core);
@@ -699,6 +704,8 @@ static void qdr_generate_link_name(const char *label, char *buffer, size_t lengt
 
 static void qdr_link_cleanup_deliveries_CT(qdr_core_t *core, qdr_connection_t *conn, qdr_link_t *link)
 {
+    qd_log(core->log, QD_LOG_CRITICAL, "qdr_link_cleanup_deliveries_CT conn=%p, link=%p",
+           (void*)conn, (void*)link);
     //
     // Clean up the lists of deliveries on this link
     //
@@ -912,6 +919,8 @@ static void qdr_link_abort_undelivered_CT(qdr_core_t *core, qdr_link_t *link)
 
 static void qdr_link_cleanup_CT(qdr_core_t *core, qdr_connection_t *conn, qdr_link_t *link, const char *log_text)
 {
+    qd_log(core->log, QD_LOG_CRITICAL, "qdr_link_cleanup_CT() conn=%p, link=%p",
+           (void*)conn, (void*)link);
     //
     // Remove the link from the master list of links
     //
@@ -999,11 +1008,13 @@ static void qdr_link_cleanup_CT(qdr_core_t *core, qdr_connection_t *conn, qdr_li
     // Log the link closure
     //
     qd_log(core->log, QD_LOG_INFO, "[C%"PRIu64"][L%"PRIu64"] %s: del=%"PRIu64" presett=%"PRIu64" psdrop=%"PRIu64
-           " acc=%"PRIu64" rej=%"PRIu64" rel=%"PRIu64" mod=%"PRIu64" delay1=%"PRIu64" delay10=%"PRIu64" blocked=%s",
+           " acc=%"PRIu64" rej=%"PRIu64" rel=%"PRIu64" mod=%"PRIu64" delay1=%"PRIu64" delay10=%"PRIu64" blocked=%s"
+           " DEBUG: link->conn=%p, free_qdr_link=%p",
            conn->identity, link->identity, log_text, link->total_deliveries, link->presettled_deliveries,
            link->dropped_presettled_deliveries, link->accepted_deliveries, link->rejected_deliveries,
            link->released_deliveries, link->modified_deliveries, link->deliveries_delayed_1sec,
-           link->deliveries_delayed_10sec, link->reported_as_blocked ? "yes" : "no");
+           link->deliveries_delayed_10sec, link->reported_as_blocked ? "yes" : "no", 
+           (void*)(link->conn), (void*)link);
 
     if (link->reported_as_blocked)
         core->links_blocked--;
@@ -1039,6 +1050,9 @@ qdr_link_t *qdr_create_link_CT(qdr_core_t       *core,
     // Create a new link, initiated by the router core.  This will involve issuing a first-attach outbound.
     //
     qdr_link_t *link = new_qdr_link_t();
+    qd_log(conn->core->log, QD_LOG_CRITICAL, "New link create link CT: conn=%p, new_qdr_link_t %p", 
+           (void*)conn, (void*)link);
+
     ZERO(link);
 
     link->core           = core;
@@ -1337,6 +1351,8 @@ void qdr_connection_free(qdr_connection_t *conn)
     free(conn->tenant_space);
     qdr_error_free(conn->error);
     qdr_connection_info_free(conn->connection_info);
+    qd_log(conn->core->log, QD_LOG_CRITICAL, "qdr_connection_free() free_qdr_connection=%p",
+           (void*)conn);
     free_qdr_connection_t(conn);
 }
 
@@ -1347,6 +1363,8 @@ static void qdr_connection_closed_CT(qdr_core_t *core, qdr_action_t *action, boo
         return;
 
     qdr_connection_t *conn = action->args.connection.conn;
+
+    qd_log(core->log, QD_LOG_CRITICAL, "qdr_connection_closed_CT conn=%p", (void*)conn);
 
     //
     // Deactivate routes associated with this connection
@@ -1411,7 +1429,7 @@ static void qdr_connection_closed_CT(qdr_core_t *core, qdr_action_t *action, boo
 
     qdrc_event_conn_raise(core, QDRC_EVENT_CONN_CLOSED, conn);
 
-    qd_log(core->log, QD_LOG_INFO, "[C%"PRIu64"] Connection Closed", conn->identity);
+    qd_log(core->log, QD_LOG_INFO, "[C%"PRIu64"] Connection Closed qdr_connection_free:%p", conn->identity, (void*)conn);
 
     DEQ_REMOVE(core->open_connections, conn);
     qdr_connection_free(conn);
