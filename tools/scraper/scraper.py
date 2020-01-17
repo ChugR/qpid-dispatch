@@ -34,7 +34,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
-import ast
 import os
 import sys
 import traceback
@@ -834,7 +833,7 @@ def main_except(argv):
                 line = plf.line
                 sti = line.find("{")
                 line = line[sti:]
-                l_dict = ast.literal_eval(line)
+                l_dict = common.ls_eval(line)
                 costs_row = new_costs_row(PEER_COST_ABSENT)
                 for i in range(0, comn.n_logs):
                     if len(comn.routers[i]) > 0:
@@ -859,7 +858,7 @@ def main_except(argv):
                 if plf.router.is_interior():
                     cur_costs[plf.router.container_name] = costs_row
             except:
-                pass
+                raise
             print("</tr>")
             # if the costs are stable across all routers then put an indicator in table
             costs_stable = True
