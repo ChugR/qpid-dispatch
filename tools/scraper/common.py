@@ -205,11 +205,11 @@ def ls_eval(text):
     '''
     result = {}
     text = text.strip(" {}")
-    items = text.split(',')
+    items = text.split(', ')
     for item in items:
-        kv = item.split(":")
+        kv = item.split(": ")
         key = kv[0].strip()
-        if key.startswith("u'"):
+        if key.startswith("u'") or key.startswith('u"'):
             key = key[2:-1]
         elif key.startswith("'"):
             key = key[1:-1]

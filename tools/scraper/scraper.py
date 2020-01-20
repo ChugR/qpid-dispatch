@@ -833,7 +833,12 @@ def main_except(argv):
                 line = plf.line
                 sti = line.find("{")
                 line = line[sti:]
-                l_dict = common.ls_eval(line)
+                try:
+                    l_dict = common.ls_eval(line)
+                except:
+                    traceback.print_exc()
+                    sys.stderr.write("Failed to parse router %s, line %d : %s. Analysis continuing...\n" % (plf.router.iname, plf.lineno, plf.line))
+                    l_dict = {}
                 costs_row = new_costs_row(PEER_COST_ABSENT)
                 for i in range(0, comn.n_logs):
                     if len(comn.routers[i]) > 0:
