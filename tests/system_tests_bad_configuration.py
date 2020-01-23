@@ -185,9 +185,9 @@ class RouterTestIdFailCtrlChar(TestCase):
         """
         conf_path = "../setUpClass/test-router-ctrl-char.conf"
         with open(conf_path, 'w') as router_conf:
-                router_conf.write("router { \n")
-                router_conf.write("    id: abc\\bdef \n")
-                router_conf.write("}")
+            router_conf.write("router { \n")
+            router_conf.write("    id: abc\\bdef \n")
+            router_conf.write("}")
 
         p = self.popen(
             ['qdrouterd', '-c', conf_path],
@@ -223,9 +223,9 @@ class RouterTestIdFailWhiteSpace(TestCase):
         """
         conf_path = "../setUpClass/test-router-whitespace.conf"
         with open(conf_path, 'w') as router_conf:
-                router_conf.write("router { \n")
-                router_conf.write("    id: abc def \n")
-                router_conf.write("}")
+            router_conf.write("router { \n")
+            router_conf.write("    id: abc def \n")
+            router_conf.write("}")
 
         p = self.popen(
             ['qdrouterd', '-c', conf_path],
