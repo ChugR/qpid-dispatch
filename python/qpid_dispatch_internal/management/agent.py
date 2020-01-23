@@ -258,6 +258,9 @@ class RouterEntity(EntityAdapter):
         return self.attributes.get('id')
 
     def create(self):
+        for ch in self.attributes[u"id"]:
+            if not (ch.isalnum() or ch == "-" or ch == "."):
+                raise AttributeError("Router id attribute contains illegal character '%s' in id: '%s'" % (ch, self.attributes[u"id"]))
         try:
             self.attributes[u"hostName"] = socket.gethostbyaddr(socket.gethostname())[0]
         except:
