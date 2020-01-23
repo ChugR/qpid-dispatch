@@ -68,6 +68,7 @@ from __future__ import print_function
 
 import traceback, json, pstats
 import socket
+import unicodedata
 from traceback import format_exc
 from threading import Lock
 from cProfile import Profile
@@ -259,8 +260,8 @@ class RouterEntity(EntityAdapter):
 
     def create(self):
         for ch in self.attributes[u"id"]:
-            if not (ch.isalnum() or ch == "-" or ch == "."):
-                raise AttributeError("Router id attribute contains illegal character '%s' in id: '%s'" % (ch, self.attributes[u"id"]))
+            if unicodedata.category(ch)[0] in "CZ":  # disallow control and whitespace characters
+                raise AttributeError("Router id attribute containing character '%s' in id '%s' is disallowed." % (ch, self.attributes[u"id"]))
         try:
             self.attributes[u"hostName"] = socket.gethostbyaddr(socket.gethostname())[0]
         except:
