@@ -418,14 +418,15 @@ class RouterTest(TestCase):
 
 
     def test_32_two_router_waypoint(self):
-        test = WaypointTest(self.routers[0].addresses[1],
-                            self.routers[1].addresses[2],
-                            "queue.waypoint",
-                            "0.0.0.0/queue.waypoint")
-        test.run()
-        if test.error:
-            test.logger.dump()
-        self.assertEqual(None, test.error)
+        for i in range(300):
+            test = WaypointTest(self.routers[0].addresses[1],
+                                self.routers[1].addresses[2],
+                                "queue.waypoint",
+                                "0.0.0.0/queue.waypoint")
+            test.run()
+            if test.error:
+                test.logger.dump()
+            self.assertEqual(None, test.error)
 
 
     def test_33_one_router_waypoint_no_tenant_external_addr(self):
@@ -871,6 +872,7 @@ class WaypointTest(MessagingHandler):
         self.n_sent = 0
         self.n_rcvd = 0
         self.n_thru = 0
+        self.forgiven = False
 
     def timeout(self):
         self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_thru=%d" % (self.n_sent, self.n_rcvd, self.n_thru)
@@ -879,6 +881,9 @@ class WaypointTest(MessagingHandler):
         self.second_conn.close()
 
     def fail(self, text):
+        if text is None:
+            if self.forgiven:
+                text = "Text passed but was forgiven!!!"
         self.logger.log("fail: %s" % text)
         self.error = text
         self.second_conn.close()
@@ -968,6 +973,13 @@ class WaypointTest(MessagingHandler):
             self.logger.log("on_message: waypoint_receiver: send message: %s" % (m))
             self.waypoint_queue.append(m)
             self.send_waypoint()
+
+    def on_released(self, event):
+        if event.sender == self.first_sender:
+            # resend while waiting for waypoint to stabilize
+            self.first_sender.send(Message(body="Message %d of %d" % (self.n_sent, self.count)))
+            self.logger.log("Forgiving a released message")
+            self.forgiven = True
 
     def run(self):
         container = Container(self)
