@@ -1869,6 +1869,13 @@
                     "required": false,
                     "create": true
                 },
+                "maxMessageSize": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "The maximum size in bytes of AMQP message transfers allowed for this router. This limit is applied only to transfers over user connections and is not applied to interrouter or edge router connections. This limit may be overridden by vhost or by vhost user group settings. A value of zero disables this limit.",
+                    "required": false,
+                    "create": true
+                },
                 "enableVhostPolicy": {
                     "type": "boolean",
                     "default": false,
@@ -1933,6 +1940,13 @@
                     "create": true,
                     "update": true
                 },
+                "maxMessageSize": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Optional maximum size in bytes of AMQP message transfers allowed for connections to this vhost. This limit overrides the policy maxMessageSize value and may be overridden by vhost user group settings. A value of zero disables this limit.",
+                    "required": false,
+                    "create": true
+                },
                 "maxConnectionsPerUser": {
                     "type": "integer",
                     "default": 65535,
@@ -1992,6 +2006,13 @@
                     "description": "Optional maximum number of concurrent connections allowed for any remote host by users in this group. This value, if specified, overrides the vhost maxConnectionsPerHost value",
                     "required": false,
                     "create": false
+                },
+                "maxMessageSize": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Optional maximum size in bytes of AMQP message transfers allowed for connections created by users in this group. This limit overrides the policy and vhost maxMessageSize values. A value of zero disables this limit.",
+                    "required": false,
+                    "create": true
                 },
                 "maxFrameSize": {
                     "type": "integer",
