@@ -46,6 +46,7 @@ static int n_connections = 0;
 static int n_denied = 0;
 static int n_processed = 0;
 static int n_links_denied = 0;
+static int n_maxsize_transfers_denied = 0;
 static int n_total_denials = 0;
 
 //
@@ -206,7 +207,8 @@ qd_error_t qd_policy_c_counts_refresh(long ccounts, qd_entity_t *entity)
     qd_policy_denial_counts_t *dc = (qd_policy_denial_counts_t*)ccounts;
     if (!qd_entity_set_long(entity, "sessionDenied", dc->sessionDenied) &&
         !qd_entity_set_long(entity, "senderDenied", dc->senderDenied) &&
-        !qd_entity_set_long(entity, "receiverDenied", dc->receiverDenied)
+        !qd_entity_set_long(entity, "receiverDenied", dc->receiverDenied) &&
+        !qd_entity_set_long(entity, "maxSizeTransfersDenied", dc->maxSizeTransfersDenied)
     )
         return QD_ERROR_NONE;
     return qd_error_code();
@@ -218,13 +220,14 @@ qd_error_t qd_policy_c_counts_refresh(long ccounts, qd_entity_t *entity)
  **/
 qd_error_t qd_entity_refresh_policy(qd_entity_t* entity, void *unused) {
     // Return global stats
-    int np, nd, nc, nl, nt;
+    int np, nd, nc, nl, nm, nt;
     sys_mutex_lock(stats_lock);
     {
         np = n_processed;
         nd = n_denied;
         nc = n_connections;
         nl = n_links_denied;
+        nm = n_maxsize_transfers_denied;
         nt = n_total_denials;
     }
     sys_mutex_unlock(stats_lock);
@@ -232,6 +235,7 @@ qd_error_t qd_entity_refresh_policy(qd_entity_t* entity, void *unused) {
         !qd_entity_set_long(entity, "connectionsDenied", nd) &&
         !qd_entity_set_long(entity, "connectionsCurrent", nc) &&
         !qd_entity_set_long(entity, "linksDenied", nl) &&
+        !qd_entity_set_long(entity, "maxSizeTransfersDenied", nm) &&
         !qd_entity_set_long(entity, "totalDenials", nt)
     )
         return QD_ERROR_NONE;
