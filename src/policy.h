@@ -50,6 +50,7 @@ struct qd_policy__settings_s {
     int  maxSessions;
     int  maxSenders;
     int  maxReceivers;
+    int  maxMessageTransferSize;
     bool allowDynamicSource;
     bool allowAnonymousSender;
     bool allowUserIdProxy;

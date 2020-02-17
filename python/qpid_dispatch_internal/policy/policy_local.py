@@ -843,6 +843,13 @@ class PolicyLocal(object):
 
             upolicy.update(ruleset[PolicyKeys.KW_GROUPS][groupname])
 
+            maxsize = upolicy.get(PolicyKeys.KW_MAX_MESSAGE_SIZE, None)
+            if maxsize is None:
+                maxsize = ruleset.get(PolicyKeys.KW_MAX_MESSAGE_SIZE, None)
+                if maxsize is None:
+                    maxsize = self._max_message_size
+                upolicy[PolicyKeys.KW_MAX_MESSAGE_SIZE] = maxsize
+
             upolicy[PolicyKeys.KW_CSTATS] = self.statsdb[vhost].get_cstats()
             return True
         except Exception as e:

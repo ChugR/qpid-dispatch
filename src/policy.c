@@ -310,16 +310,18 @@ void qd_policy_socket_close(qd_policy_t *policy, const qd_connection_t *conn)
     int ssnDenied = 0;
     int sndDenied = 0;
     int rcvDenied = 0;
+    int sizDenied = 0;
     if (conn->policy_settings && conn->policy_settings->denialCounts) {
         ssnDenied = conn->policy_settings->denialCounts->sessionDenied;
         sndDenied = conn->policy_settings->denialCounts->senderDenied;
         rcvDenied = conn->policy_settings->denialCounts->receiverDenied;
+        sizDenied = conn->policy_settings->denialCounts->maxSizeTransfersDenied;
     }
     qd_log(policy->log_source, QD_LOG_DEBUG, 
            "Connection '%s' closed with resources n_sessions=%d, n_senders=%d, n_receivers=%d, "
-           "sessions_denied=%d, senders_denied=%d, receivers_denied=%d. nConnections= %d.",
+           "sessions_denied=%d, senders_denied=%d, receivers_denied=%d max_size_transfers_denied=%d. nConnections= %d.",
             hostname, conn->n_sessions, conn->n_senders, conn->n_receivers,
-            ssnDenied, sndDenied, rcvDenied, n_connections);
+            ssnDenied, sndDenied, rcvDenied, sizDenied, n_connections);
 }
 
 
@@ -506,6 +508,7 @@ bool qd_policy_open_fetch_settings(
                         settings->maxSessions          = qd_entity_opt_long((qd_entity_t*)upolicy, "maxSessions", 0);
                         settings->maxSenders           = qd_entity_opt_long((qd_entity_t*)upolicy, "maxSenders", 0);
                         settings->maxReceivers         = qd_entity_opt_long((qd_entity_t*)upolicy, "maxReceivers", 0);
+                        settings->maxMessageTransferSize = qd_entity_opt_long((qd_entity_t*)upolicy, "maxMessageTransferSize", 0);
                         if (!settings->allowAnonymousSender) { //don't override if enabled by authz plugin
                             settings->allowAnonymousSender = qd_entity_opt_bool((qd_entity_t*)upolicy, "allowAnonymousSender", false);
                         }
