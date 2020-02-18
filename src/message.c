@@ -1413,6 +1413,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // the cursor in the buffer.
             //
             qd_buffer_insert(content->pending, rc);
+            content->bytes_received += rc;
         } else {
             //
             // We received zero bytes, and no PN_EOS.  This means that we've received

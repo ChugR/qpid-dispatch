@@ -109,6 +109,7 @@ typedef struct {
     qd_parsed_field_t   *ma_pf_to_override;
     qd_parsed_field_t   *ma_pf_trace;
     int                  ma_int_phase;
+    int                  bytes_received;
     uint32_t             fanout;                         // The number of receivers for this message, including in-process subscribers.
     qd_link_t_sp         input_link_sp;                  // message received on this link
 
