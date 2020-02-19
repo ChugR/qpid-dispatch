@@ -508,7 +508,7 @@ bool qd_policy_open_fetch_settings(
                         settings->maxSessions          = qd_entity_opt_long((qd_entity_t*)upolicy, "maxSessions", 0);
                         settings->maxSenders           = qd_entity_opt_long((qd_entity_t*)upolicy, "maxSenders", 0);
                         settings->maxReceivers         = qd_entity_opt_long((qd_entity_t*)upolicy, "maxReceivers", 0);
-                        settings->maxMessageSize       = qd_entity_opt_long((qd_entity_t*)upolicy, "maxMessageTransferSize", 0);
+                        settings->maxMessageSize       = qd_entity_opt_long((qd_entity_t*)upolicy, "maxMessageSize", 0);
                         if (!settings->allowAnonymousSender) { //don't override if enabled by authz plugin
                             settings->allowAnonymousSender = qd_entity_opt_bool((qd_entity_t*)upolicy, "allowAnonymousSender", false);
                         }
