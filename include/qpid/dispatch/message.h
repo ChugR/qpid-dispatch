@@ -422,6 +422,20 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted);
  */
 uint8_t qd_message_get_priority(qd_message_t *msg);
 
+/**
+ * Return message exceeds maxMessageSize state
+ * @param msg A pointer to the message
+ * @return true if the message has accumulated too many bytes
+ */
+bool qd_message_oversize(const qd_message_t *msg);
+
+/**
+ * Set the oversize flag on the message
+ * @param msg A pointer to the message
+ * @param oversize
+ */
+void qd_message_set_oversize(qd_message_t *msg, bool oversize);
+
 
 ///@}
 

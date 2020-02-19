@@ -109,6 +109,7 @@ typedef struct {
     qd_parsed_field_t   *ma_pf_to_override;
     qd_parsed_field_t   *ma_pf_trace;
     int                  ma_int_phase;
+    int                  policy_max_message_size;
     int                  bytes_received;
     uint32_t             fanout;                         // The number of receivers for this message, including in-process subscribers.
     qd_link_t_sp         input_link_sp;                  // message received on this link
@@ -121,6 +122,7 @@ typedef struct {
     bool                 disable_q2_holdoff;             // Disable the Q2 flow control
     bool                 priority_parsed;
     bool                 priority_present;
+    bool                 oversize;                       // policy oversize handling in effect
     uint8_t              priority;                       // The priority of this message
 } qd_message_content_t;
 

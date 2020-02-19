@@ -1301,6 +1301,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         msg->strip_annotations_in  = qd_connection_strip_annotations_in(qdc);
         pn_record_def(record, PN_DELIVERY_CTX, PN_WEAKREF);
         pn_record_set(record, PN_DELIVERY_CTX, (void*) msg);
+        msg->content->policy_max_message_size = qd_connection_max_message_size(qdc);
     }
 
     //
@@ -1413,7 +1414,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             // the cursor in the buffer.
             //
             qd_buffer_insert(content->pending, rc);
-            content->bytes_received += rc;
+            content->bytes_received += rc;      // policy oversize limit enforced by our caller
         } else {
             //
             // We received zero bytes, and no PN_EOS.  This means that we've received
@@ -2223,4 +2224,15 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted)
         return;
     qd_message_pvt_t * msg_pvt = (qd_message_pvt_t *)msg;
     msg_pvt->content->aborted = aborted;
+}
+
+bool qd_message_oversize(const qd_message_t *msg)
+{
+    qd_message_content_t * content = MSG_CONTENT(msg);
+    return content->policy_max_message_size && (content->bytes_received > content->policy_max_message_size);
+}
+
+void qd_message_set_oversize(qd_message_t *msg, bool oversize)
+{
+    MSG_CONTENT(msg)->oversize = oversize;
 }

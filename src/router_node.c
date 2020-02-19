@@ -27,6 +27,7 @@
 #include "entity_cache.h"
 #include "router_private.h"
 #include "delivery.h"
+#include "policy.h"
 #include <qpid/dispatch/router_core.h>
 #include <qpid/dispatch/proton_utils.h>
 #include <proton/sasl.h>
@@ -333,8 +334,26 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
     // Receive the message into a local representation.
     //
     qd_message_t   *msg   = qd_message_receive(pnd);
+    
+    bool oversize         = qd_message_oversize(msg);
     bool receive_complete = qd_message_receive_complete(msg);
 
+    if (oversize) {
+        qd_log(router->log_source, QD_LOG_DEBUG, "Message denied: exceeds configured maxMessageSize");
+
+        qd_policy_count_max_size_event(pn_link, conn);
+        
+        pn_condition_t * cond = pn_link_condition(pn_link);
+        (void) pn_condition_set_name(       cond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
+        pn_link_close(pn_link);
+        
+        if (!receive_complete) {
+            qd_message_set_oversize(msg, true); // discard remainder of message until link closes
+        }
+        
+        
+    }
+    
     if (receive_complete) {
         log_link_message(conn, pn_link, msg);
 
