@@ -2226,13 +2226,9 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted)
     msg_pvt->content->aborted = aborted;
 }
 
-bool qd_message_oversize(const qd_message_t *msg)
+bool qd_message_is_oversize(const qd_message_t *msg)
 {
-    qd_message_content_t * content = MSG_CONTENT(msg);
-    return content->policy_max_message_size && (content->bytes_received > content->policy_max_message_size);
-}
-
-void qd_message_set_oversize(qd_message_t *msg, bool oversize)
-{
-    MSG_CONTENT(msg)->oversize = oversize;
+    qd_message_content_t * mc = MSG_CONTENT(msg);
+    return mc->policy_max_message_size && 
+          (mc->bytes_received > mc->policy_max_message_size);
 }
