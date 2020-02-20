@@ -39,7 +39,7 @@ struct qd_policy_denial_counts_s {
     int sessionDenied;
     int senderDenied;
     int receiverDenied;
-    int maxSizeTransfersDenied;
+    int maxSizeMessagesDenied;
 };
 
 typedef struct qd_policy_t qd_policy_t;

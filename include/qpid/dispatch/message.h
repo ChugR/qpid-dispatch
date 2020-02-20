@@ -427,8 +427,14 @@ uint8_t qd_message_get_priority(qd_message_t *msg);
  * @param msg A pointer to the message
  * @return true if the message has accumulated too many bytes
  */
-bool qd_message_is_oversize(const qd_message_t *msg);
+bool qd_message_exceeds_max_message_size(const qd_message_t *msg);
 
+/**
+ * Message went oversize on last call to qd_message_receive
+ * @param msg A pointer to the message
+ * @return true if the message has accumulated too many bytes
+ */
+bool qd_message_just_went_oversize(const qd_message_t *msg);
 
 ///@}
 

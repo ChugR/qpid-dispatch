@@ -1912,7 +1912,7 @@
                     "graph": true,
                     "description": "The sum of all vhost sender and receiver denials."
                 },
-                "maxSizeTransfersDenied": {"type": "integer", "graph": true},
+                "maxMessageSizeDenied": {"type": "integer", "graph": true},
                 "totalDenials": {
                     "type": "integer",
                     "graph": true,
@@ -2149,7 +2149,7 @@
                 "sessionDenied": {"type": "integer", "graph": true},
                 "senderDenied": {"type": "integer", "graph": true},
                 "receiverDenied": {"type": "integer", "graph": true},
-                "maxSizeTransfersDenied": {"type": "integer", "graph": true}
+                "maxMessageSizeDenied": {"type": "integer", "graph": true}
             }
         },
 

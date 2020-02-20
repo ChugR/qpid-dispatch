@@ -1301,7 +1301,10 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         msg->strip_annotations_in  = qd_connection_strip_annotations_in(qdc);
         pn_record_def(record, PN_DELIVERY_CTX, PN_WEAKREF);
         pn_record_set(record, PN_DELIVERY_CTX, (void*) msg);
-        msg->content->policy_max_message_size = qd_connection_max_message_size(qdc);
+        msg->content->max_message_size = qd_connection_max_message_size(qdc);
+    } else {
+        // existing messages may detect oversize transitions only once
+        msg->content->went_oversize = false;
     }
 
     //
@@ -1410,11 +1413,24 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
             recv_error = true;
         } else if (rc > 0) {
             //
-            // We have received a positive number of bytes for the message.  Advance
-            // the cursor in the buffer.
+            // We have received a positive number of bytes for the message.  
+            // Advance the cursor in the buffer.
             //
             qd_buffer_insert(content->pending, rc);
-            content->bytes_received += rc;      // policy oversize limit enforced by our caller
+
+            // Handle maxMessageSize violations
+            content->bytes_received += rc;
+            if (content->max_message_size && 
+                content->bytes_received > content->max_message_size)
+            {
+                content->went_oversize = true;
+                content->oversize = true;
+                content->discard = true;
+
+                qd_log(qd_log_source("POLICY"), QD_LOG_CRITICAL, 
+                       "maxMessageSize exceeded TODO connection/link/host/user details");
+                break;
+            }
         } else {
             //
             // We received zero bytes, and no PN_EOS.  This means that we've received
@@ -2226,9 +2242,13 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted)
     msg_pvt->content->aborted = aborted;
 }
 
-bool qd_message_is_oversize(const qd_message_t *msg)
+bool qd_message_exceeds_max_message_size(const qd_message_t *msg)
 {
     qd_message_content_t * mc = MSG_CONTENT(msg);
-    return mc->policy_max_message_size && 
-          (mc->bytes_received > mc->policy_max_message_size);
+    return mc->max_message_size && mc->bytes_received > mc->max_message_size;
+}
+
+bool qd_message_just_went_oversize(const qd_message_t *msg)
+{
+    return (MSG_CONTENT(msg))->went_oversize;
 }

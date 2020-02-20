@@ -46,7 +46,7 @@ static int n_connections = 0;
 static int n_denied = 0;
 static int n_processed = 0;
 static int n_links_denied = 0;
-static int n_maxsize_transfers_denied = 0;
+static int n_maxsize_messages_denied = 0;
 static int n_total_denials = 0;
 
 //
@@ -208,7 +208,7 @@ qd_error_t qd_policy_c_counts_refresh(long ccounts, qd_entity_t *entity)
     if (!qd_entity_set_long(entity, "sessionDenied", dc->sessionDenied) &&
         !qd_entity_set_long(entity, "senderDenied", dc->senderDenied) &&
         !qd_entity_set_long(entity, "receiverDenied", dc->receiverDenied) &&
-        !qd_entity_set_long(entity, "maxSizeTransfersDenied", dc->maxSizeTransfersDenied)
+        !qd_entity_set_long(entity, "maxMessageSizeDenied", dc->maxSizeMessagesDenied)
     )
         return QD_ERROR_NONE;
     return qd_error_code();
@@ -227,7 +227,7 @@ qd_error_t qd_entity_refresh_policy(qd_entity_t* entity, void *unused) {
         nd = n_denied;
         nc = n_connections;
         nl = n_links_denied;
-        nm = n_maxsize_transfers_denied;
+        nm = n_maxsize_messages_denied;
         nt = n_total_denials;
     }
     sys_mutex_unlock(stats_lock);
@@ -235,7 +235,7 @@ qd_error_t qd_entity_refresh_policy(qd_entity_t* entity, void *unused) {
         !qd_entity_set_long(entity, "connectionsDenied", nd) &&
         !qd_entity_set_long(entity, "connectionsCurrent", nc) &&
         !qd_entity_set_long(entity, "linksDenied", nl) &&
-        !qd_entity_set_long(entity, "maxSizeTransfersDenied", nm) &&
+        !qd_entity_set_long(entity, "maxMessageSizeDenied", nm) &&
         !qd_entity_set_long(entity, "totalDenials", nt)
     )
         return QD_ERROR_NONE;
@@ -315,7 +315,7 @@ void qd_policy_socket_close(qd_policy_t *policy, const qd_connection_t *conn)
         ssnDenied = conn->policy_settings->denialCounts->sessionDenied;
         sndDenied = conn->policy_settings->denialCounts->senderDenied;
         rcvDenied = conn->policy_settings->denialCounts->receiverDenied;
-        sizDenied = conn->policy_settings->denialCounts->maxSizeTransfersDenied;
+        sizDenied = conn->policy_settings->denialCounts->maxSizeMessagesDenied;
     }
     qd_log(policy->log_source, QD_LOG_DEBUG, 
            "Connection '%s' closed with resources n_sessions=%d, n_senders=%d, n_receivers=%d, "
@@ -678,11 +678,11 @@ void _qd_policy_deny_amqp_receiver_link(pn_link_t *pn_link, qd_connection_t *qd_
 void qd_policy_count_max_size_event(pn_link_t *link, qd_connection_t *qd_conn)
 {
     sys_mutex_lock(stats_lock);
-    n_maxsize_transfers_denied++;
+    n_maxsize_messages_denied++;
     n_total_denials++;
     sys_mutex_unlock(stats_lock);
     if (qd_conn->policy_settings && qd_conn->policy_settings->denialCounts) {
-        qd_conn->policy_settings->denialCounts->maxSizeTransfersDenied++;
+        qd_conn->policy_settings->denialCounts->maxSizeMessagesDenied++;
     }
 }
 

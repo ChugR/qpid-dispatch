@@ -330,30 +330,29 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
     qdr_delivery_t *delivery = qdr_node_delivery_qdr_from_pn(pnd);
     bool       next_delivery = false;
 
-    //
-    // Receive the message into a local representation.
-    //
     qd_message_t   *msg   = qd_message_receive(pnd);
     
-    bool oversize         = qd_message_oversize(msg);
-    bool receive_complete = qd_message_receive_complete(msg);
-
-    if (oversize) {
-        qd_log(router->log_source, QD_LOG_DEBUG, "Message denied: exceeds configured maxMessageSize");
-
-        qd_policy_count_max_size_event(pn_link, conn);
-        
-        pn_condition_t * cond = pn_link_condition(pn_link);
-        (void) pn_condition_set_name(       cond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
-        pn_link_close(pn_link);
-        
-        if (!receive_complete) {
-            qd_message_set_oversize(msg, true); // discard remainder of message until link closes
+    bool is_oversize      = qd_message_exceeds_max_message_size(msg);
+    if (is_oversize) {
+        // message is bigger than maxMessageSize
+        if (qd_message_just_went_oversize(msg)) {
+            // Message was not too big and now it is
+            // Initiate link close with error.
+            // Do not settle delivery or issue new flow
+            pn_condition_t * cond = pn_link_condition(pn_link);
+            (void) pn_condition_set_name(cond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
+            pn_link_close(pn_link);
+            // This link is now locally closed.
+            // Abort outbound deliveries that were receiving this incoming delivery
+            qdr_node_disconnect_deliveries(router->router_core, link, delivery, pnd);
+            // If more deliveries arrive for this transfer they will be discarded.
+            // Expect the peer to remotely close the link and clean up resources there.
         }
-        
-        
+        // Link was not advanced
+        return false;
     }
     
+    bool receive_complete = qd_message_receive_complete(msg);
     if (receive_complete) {
         log_link_message(conn, pn_link, msg);
 
