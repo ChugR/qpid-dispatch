@@ -1422,11 +1422,10 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 content->bytes_received += rc;
                 if (content->bytes_received > content->max_message_size)
                 {
-                    content->oversize_detected += 1;
                     content->oversize = true;
-                    content->discard = true;
-                    content->aborted = true;
-                    break;
+                    content->discard  = true;
+                    content->aborted  = true;
+                    return discard_receive(delivery, link, (qd_message_t*)msg);
                 }
             }
         } else {

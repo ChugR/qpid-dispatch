@@ -344,6 +344,7 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
             qd_policy_count_max_size_event(pn_link, conn);
             // reject delivery that went oversize
             pn_delivery_update(pnd, PN_REJECTED);
+#ifdef POLICY_CLOSE_MAXSIZE_MESSAGE_DENIED_LINKS
             // Initiate link close with error.
             pn_condition_t * cond = pn_link_condition(pn_link);
             (void) pn_condition_set_name(cond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
@@ -351,9 +352,8 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
             // Abort outbound deliveries that were receiving this incoming delivery
             qdr_node_disconnect_deliveries(router->router_core, link, delivery, pnd);
             // If more deliveries arrive for this delivery then they will be discarded.
+#endif
         }
-        // Link was not advanced
-        return false;
     }
     
     bool receive_complete = qd_message_receive_complete(msg);

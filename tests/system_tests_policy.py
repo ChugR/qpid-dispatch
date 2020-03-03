@@ -1977,10 +1977,13 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.n_sent = 0
         self.n_rcvd = 0
         self.n_accepted = 0
+        self.n_rejected = 0
+        self.n_aborted = 0
 
         self.n_receiver_opened = 0
         self.n_sender_opened = 0
         self.logger = Logger(print_to_console=True)
+        self.log_unhandled = False
 
     def timeout(self):
         self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_accepted=%d n_receiver_opened=%d n_sender_opened=%d" % \
@@ -1991,10 +1994,10 @@ class OversizeMessageTransferTest(MessagingHandler):
     def on_start(self, event):
         self.logger.log("on_start")
         self.timer = event.reactor.schedule(TIMEOUT, Timeout(self))
-        self.sender_conn = event.container.connect(self.sender_host)
         self.receiver_conn = event.container.connect(self.receiver_host)
-        self.sender = event.container.create_sender(self.sender_conn, self.sender_address)
+        self.sender_conn = event.container.connect(self.sender_host)
         self.receiver = event.container.create_receiver(self.receiver_conn, self.receiver_address)
+        self.sender = event.container.create_sender(self.sender_conn, self.sender_address)
 
     def send(self):
         while self.sender.credit > 0 and self.n_sent < self.count:
@@ -2017,13 +2020,28 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.sender_conn.close()
         self.receiver_conn.close()
 
+    def on_rejected(self, event):
+        self.logger.log("on_rejected: entry")
+        self.n_rejected += 1
+        if self.n_rejected == self.count:
+            self.logger.log("on_rejected: all messages rejected. Closing connections.")
+            self.log_unhandled = True
+            self.sender_conn.close()
+            self.receiver_conn.close()
+
+    def on_aborted(self, event):
+        self.logger.log("on_aborted")
+        self.n_aborted += 1
+
     def on_error(self, event):
-        self.logger.log("Container error")
+        self.error = "Container error"
+        self.logger.log(self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
 
     def on_link_error(self, event):
         self.error = event.link.remote_condition.name
+        self.logger.log("on_link_error: %s" % (self.error))
         #
         # qpid-proton master @ 6abb4ce
         # At this point the container is wedged and closing the connections does
@@ -2034,7 +2052,8 @@ class OversizeMessageTransferTest(MessagingHandler):
         raise Exception(self.error)
 
     def on_unhandled(self, method, *args):
-        self.logger.log("on_unhandled: method: %s, args: %s" % (method, args))
+        if self.log_unhandled:
+            self.logger.log("on_unhandled: method: %s, args: %s" % (method, args))
 
     def run(self):
         try:
@@ -2087,7 +2106,7 @@ class MaxMessageSizeBlockOversize(TestCase):
                                            110000)
         test.run()
 
-        self.assertEqual("amqp:link:message-size-exceeded", test.error)
+        self.assertTrue(test.error is None)
 
         qd_manager = QdManager(self, self.address())
         num_oversize = 0
@@ -2097,7 +2116,7 @@ class MaxMessageSizeBlockOversize(TestCase):
                 if "maxMessageSize" in log[2]:
                     logger.log("found log messgage: %s" % (log[2]))
                     num_oversize += 1
-        self.assertEqual(1, num_oversize)
+        self.assertEqual(10, num_oversize)
 
 
 if __name__ == '__main__':
