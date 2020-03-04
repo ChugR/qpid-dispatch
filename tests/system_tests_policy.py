@@ -1988,6 +1988,7 @@ class OversizeMessageTransferTest(MessagingHandler):
     def timeout(self):
         self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_accepted=%d n_receiver_opened=%d n_sender_opened=%d" % \
                      (self.n_sent, self.n_rcvd, self.n_accepted, self.n_receiver_opened, self.n_sender_opened)
+        self.logger.log("self.timeout " + self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
 
@@ -2026,6 +2027,10 @@ class OversizeMessageTransferTest(MessagingHandler):
         if self.n_rejected == self.count:
             self.logger.log("on_rejected: all messages rejected.")
             self.log_unhandled = True
+            if self.n_aborted == self.count:
+                self.logger.log("Closing connections")
+                self.sender_conn.close()
+                self.receiver_conn.close()
 
     def on_aborted(self, event):
         self.logger.log("on_aborted")
@@ -2033,8 +2038,10 @@ class OversizeMessageTransferTest(MessagingHandler):
         if self.n_aborted == self.count:
             self.logger.log("on_aborted: all messages aborted.")
             self.log_unhandled = True
-            self.sender_conn.close()
-            self.receiver_conn.close()
+            if self.n_rejected == self.count:
+                self.logger.log("Closing connections")
+                self.sender_conn.close()
+                self.receiver_conn.close()
 
     def on_error(self, event):
         self.error = "Container error"

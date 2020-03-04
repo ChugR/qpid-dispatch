@@ -1256,6 +1256,9 @@ qd_message_t *discard_receive(pn_delivery_t *delivery,
         } else if (rc == PN_EOS || rc < 0) {
             // end of message or error. Call the message complete
             msg->content->receive_complete = true;
+            // Message is aborted if remote sender says so.
+            // Oversize messages are also marked as aborted so that downstream copies
+            // to remote receivers get aborted.
             msg->content->aborted = pn_delivery_aborted(delivery) || msg->content->oversize;
             qd_nullify_safe_ptr(&msg->content->input_link_sp);
 
@@ -1307,6 +1310,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
     //
     // The discard flag indicates we should keep reading the input stream
     // but not process the message for delivery.
+    // Messages already marked oversize are also discarded.
     //
     if (msg->content->discard || msg->content->oversize) {
         return discard_receive(delivery, link, (qd_message_t *)msg);
@@ -1357,7 +1361,8 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 }
 
                 content->receive_complete = true;
-                content->aborted = pn_delivery_aborted(delivery);
+                content->aborted = pn_delivery_aborted(delivery) ||
+                                    content->oversize;
                 qd_nullify_safe_ptr(&content->input_link_sp);
 
                 // unlink message and delivery
