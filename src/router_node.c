@@ -350,7 +350,7 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
         }
     }
 
-    if (qd_message_is_discard(msg)) {
+    if (qd_message_is_discard(msg) && !qd_message_oversize(msg)) {
         //
         // Message has been marked for discard, no further processing necessary
         //

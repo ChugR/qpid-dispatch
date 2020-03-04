@@ -111,7 +111,6 @@ typedef struct {
     int                  ma_int_phase;
     int                  max_message_size;               // configured max; 0 if no max to enforce
     int                  bytes_received;                 // returned by pn_link_recv()
-    int                  oversize_detected;              // N times receive called for oversize message
     uint32_t             fanout;                         // The number of receivers for this message, including in-process subscribers.
     qd_link_t_sp         input_link_sp;                  // message received on this link
 

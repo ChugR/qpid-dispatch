@@ -29,6 +29,7 @@
 #include "compose_private.h"
 #include "connection_manager_private.h"
 #include "aprintf.h"
+#include "policy.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -1244,9 +1245,6 @@ qd_message_t *discard_receive(pn_delivery_t *delivery,
                               qd_message_t  *msg_in)
 {
     qd_message_pvt_t *msg  = (qd_message_pvt_t*)msg_in;
-    if (msg->content->oversize) {
-        msg->content->oversize_detected++;
-    }
     while (1) {
 #define DISCARD_BUFFER_SIZE (128 * 1024)
         char dummy[DISCARD_BUFFER_SIZE];
@@ -1310,7 +1308,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
     // The discard flag indicates we should keep reading the input stream
     // but not process the message for delivery.
     //
-    if (msg->content->discard) {
+    if (msg->content->discard || msg->content->oversize) {
         return discard_receive(delivery, link, (qd_message_t *)msg);
     }
 
@@ -1422,9 +1420,17 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 content->bytes_received += rc;
                 if (content->bytes_received > content->max_message_size)
                 {
+                    qd_connection_t *conn = qd_link_connection(qdl);
+                    // TODO: Include connection and link text "[C1] [L23]" in log message
+                    qd_log(qd_policy_log_source(), QD_LOG_WARNING, 
+                           "DENY AMQP Transfer maxMessageSize exceeded. rhost:%s",
+                            qd_connection_name(conn));
+                    // increment policy counters
+                    qd_policy_count_max_size_event(link, conn);
+                    // reject delivery that went oversize
+                    pn_delivery_update(delivery, PN_REJECTED);
+
                     content->oversize = true;
-                    content->discard  = true;
-                    content->aborted  = true;
                     return discard_receive(delivery, link, (qd_message_t*)msg);
                 }
             }
@@ -2239,8 +2245,8 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted)
     msg_pvt->content->aborted = aborted;
 }
 
-int qd_message_exceeded_max_message_size(const qd_message_t *msg)
+bool qd_message_oversize(const qd_message_t *msg)
 {
     qd_message_content_t * mc = MSG_CONTENT(msg);
-    return mc->oversize_detected;
+    return mc->oversize;
 }

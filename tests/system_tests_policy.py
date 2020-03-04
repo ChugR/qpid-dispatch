@@ -2024,14 +2024,17 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.logger.log("on_rejected: entry")
         self.n_rejected += 1
         if self.n_rejected == self.count:
-            self.logger.log("on_rejected: all messages rejected. Closing connections.")
+            self.logger.log("on_rejected: all messages rejected.")
             self.log_unhandled = True
-            self.sender_conn.close()
-            self.receiver_conn.close()
 
     def on_aborted(self, event):
         self.logger.log("on_aborted")
         self.n_aborted += 1
+        if self.n_aborted == self.count:
+            self.logger.log("on_aborted: all messages aborted.")
+            self.log_unhandled = True
+            self.sender_conn.close()
+            self.receiver_conn.close()
 
     def on_error(self, event):
         self.error = "Container error"

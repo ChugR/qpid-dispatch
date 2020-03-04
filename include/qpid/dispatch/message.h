@@ -423,14 +423,11 @@ void qd_message_set_aborted(const qd_message_t *msg, bool aborted);
 uint8_t qd_message_get_priority(qd_message_t *msg);
 
 /**
- * Return numbr of times qd_message_receive detected that this message is oversize.
- *  0 - message is not oversize
- *  1 - message went oversize on last call to qd_message_receive
- * >1 - message has been oversize and is being discarded
+ * True if message is larger that maxMessageSize
  * @param msg A pointer to the message
- * @return oversize detection count
+ * @return 
  */
-int qd_message_exceeded_max_message_size(const qd_message_t *msg);
+bool qd_message_oversize(const qd_message_t *msg);
 
 ///@}
 
