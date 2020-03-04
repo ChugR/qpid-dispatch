@@ -1428,10 +1428,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 if (content->bytes_received > content->max_message_size)
                 {
                     qd_connection_t *conn = qd_link_connection(qdl);
-                    // TODO: Include connection and link text "[C1] [L23]" in log message
-                    qd_log(qd_policy_log_source(), QD_LOG_WARNING, 
-                           "DENY AMQP Transfer maxMessageSize exceeded. rhost:%s",
-                            qd_connection_name(conn));
+                    qd_connection_log_policy_denial(qdl, "DENY AMQP Transfer maxMessageSize exceeded");
                     // increment policy counters
                     qd_policy_count_max_size_event(link, conn);
 
