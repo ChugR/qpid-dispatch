@@ -1954,9 +1954,11 @@ class MaxMessageSize1(TestCase):
 #
 class OversizeMessageTransferTest(MessagingHandler):
     """
-    This test connects a sender and a receiver. Then it sends a message of the given
-    size expecting that the message will be rejected by the router and that the link
-    will be closed with a condition.
+    This test connects a sender and a receiver. Then it sends _count_ number  of messages
+    of the given size expecting that the messages will be rejected by the router. The
+    receiver may receive aborted indications but that is not guaranteed. If the router
+    tries to abort an outbound message and none of that message has yet to go to the
+    wire then the delivery and the related message are simply discarded.
     """
     def __init__(self, sender_host, receiver_host, sender_address, receiver_address, msg_size):
         super(OversizeMessageTransferTest, self).__init__()
@@ -1980,14 +1982,12 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.n_rejected = 0
         self.n_aborted = 0
 
-        self.n_receiver_opened = 0
-        self.n_sender_opened = 0
         self.logger = Logger(print_to_console=True)
         self.log_unhandled = False
 
     def timeout(self):
-        self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_accepted=%d n_receiver_opened=%d n_sender_opened=%d" % \
-                     (self.n_sent, self.n_rcvd, self.n_accepted, self.n_receiver_opened, self.n_sender_opened)
+        self.error = "Timeout Expired: n_sent=%d n_rejected=%d n_aborted=%d" % \
+                     (self.n_sent, self.n_rejected, self.n_aborted)
         self.logger.log("self.timeout " + self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
@@ -2015,39 +2015,51 @@ class OversizeMessageTransferTest(MessagingHandler):
             self.send()
 
     def on_message(self, event):
-        # all messages are too big and receiving any is an error
-        self.logger.log("on_message. ERROR should not get here")
+        # all messages should violate maxMessageSize and receiving any is an error
         self.error = "Received a message. Expected to receive no messages."
+        self.logger.log(self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+
+    def _check_done(self):
+        self.logger.log("check_done: sent=%s rejected=%s aborted=%s" %
+                        (self.n_sent, self.n_rejected, self.n_aborted))
+        if (self.n_sent == self.count
+            and self.n_sent == self.n_rejected):
+
+            self.logger.log("TEST DONE!!!")
+            self.log_unhandled = True
+
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
+
+            if self.sender_conn:
+                self.sender_conn.close()
+                self.sender_conn = None
+            if self.receiver_conn:
+                self.receiver_conn.close()
+                self.receiver_conn = None
 
     def on_rejected(self, event):
         self.logger.log("on_rejected: entry")
         self.n_rejected += 1
-        if self.n_rejected == self.count:
-            self.logger.log("on_rejected: all messages rejected.")
-            self.log_unhandled = True
-            if self.n_aborted == self.count:
-                self.logger.log("Closing connections")
-                self.sender_conn.close()
-                self.receiver_conn.close()
+        self._check_done()
 
     def on_aborted(self, event):
         self.logger.log("on_aborted")
         self.n_aborted += 1
-        if self.n_aborted == self.count:
-            self.logger.log("on_aborted: all messages aborted.")
-            self.log_unhandled = True
-            if self.n_rejected == self.count:
-                self.logger.log("Closing connections")
-                self.sender_conn.close()
-                self.receiver_conn.close()
+        self._check_done()
 
     def on_error(self, event):
         self.error = "Container error"
         self.logger.log(self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
+        self.timer.cancel()
 
     def on_link_error(self, event):
         self.error = event.link.remote_condition.name

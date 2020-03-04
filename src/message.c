@@ -1238,7 +1238,7 @@ void qd_message_set_tag_sent(qd_message_t *in_msg, bool tag_sent)
 /**
  * Receive and discard large messages for which there is no destination.
  * Don't waste resources by putting the message into internal buffers.
- * Don't fiddle with locking as no sender is competing with reception.
+ * Message locking is not required since the message content buffers are untouched.
  */
 qd_message_t *discard_receive(pn_delivery_t *delivery,
                               pn_link_t     *link,
@@ -1256,14 +1256,17 @@ qd_message_t *discard_receive(pn_delivery_t *delivery,
         } else if (rc == PN_EOS || rc < 0) {
             // end of message or error. Call the message complete
             msg->content->receive_complete = true;
-            // Message is aborted if remote sender says so.
-            // Oversize messages are also marked as aborted so that downstream copies
-            // to remote receivers get aborted.
-            msg->content->aborted = pn_delivery_aborted(delivery) || msg->content->oversize;
+            msg->content->aborted = pn_delivery_aborted(delivery);
             qd_nullify_safe_ptr(&msg->content->input_link_sp);
-
             pn_record_t *record = pn_delivery_attachments(delivery);
             pn_record_set(record, PN_DELIVERY_CTX, 0);
+            if (msg->content->oversize) {
+                pn_delivery_update(delivery, PN_REJECTED);
+                pn_delivery_settle(delivery);
+                // Oversize messages are also marked as aborted
+                // so that downstream copies to remote receivers get aborted.
+                msg->content->aborted = true;
+            }
             break;
         } else {
             // rc was > 0. bytes were read and discarded.
@@ -1361,8 +1364,7 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                 }
 
                 content->receive_complete = true;
-                content->aborted = pn_delivery_aborted(delivery) ||
-                                    content->oversize;
+                content->aborted = pn_delivery_aborted(delivery);
                 qd_nullify_safe_ptr(&content->input_link_sp);
 
                 // unlink message and delivery
@@ -1432,8 +1434,6 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
                             qd_connection_name(conn));
                     // increment policy counters
                     qd_policy_count_max_size_event(link, conn);
-                    // reject delivery that went oversize
-                    pn_delivery_update(delivery, PN_REJECTED);
 
                     content->oversize = true;
                     return discard_receive(delivery, link, (qd_message_t*)msg);
