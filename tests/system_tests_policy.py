@@ -1966,13 +1966,12 @@ class OversizeMessageTransferTest(MessagingHandler):
     With expect_block=False sender messages should be received normally.
     The test is a success when n_accepted == count.
     """
-    def __init__(self, sender_host, receiver_host, sender_address, receiver_address,
+    def __init__(self, sender_host, receiver_host, test_address,
                  message_size=100000, count=10, expect_block=True):
         super(OversizeMessageTransferTest, self).__init__()
         self.sender_host = sender_host
         self.receiver_host = receiver_host
-        self.sender_address = sender_address
-        self.receiver_address = receiver_address
+        self.test_address = test_address
         self.msg_size = message_size
         self.count = count
         self.expect_block = expect_block
@@ -1997,16 +1996,20 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_rejected=%d n_aborted=%d" % \
                      (self.n_sent, self.n_rcvd, self.n_rejected, self.n_aborted)
         self.logger.log("self.timeout " + self.error)
-        self.sender_conn.close()
-        self.receiver_conn.close()
+        self._shut_down_test()
 
     def on_start(self, event):
         self.logger.log("on_start")
         self.timer = event.reactor.schedule(TIMEOUT, Timeout(self))
-        self.receiver_conn = event.container.connect(self.receiver_host)
-        self.sender_conn = event.container.connect(self.sender_host)
-        self.receiver = event.container.create_receiver(self.receiver_conn, self.receiver_address)
-        self.sender = event.container.create_sender(self.sender_conn, self.sender_address)
+        self.logger.log("on_start: opening receiver connection to %s" % (self.receiver_host.addresses[0]))
+        self.receiver_conn = event.container.connect(self.receiver_host.addresses[0])
+        self.logger.log("on_start: opening   sender connection to %s" % (self.sender_host.addresses[0]))
+        self.sender_conn = event.container.connect(self.sender_host.addresses[0])
+        self.logger.log("on_start: Creating receiver")
+        self.receiver = event.container.create_receiver(self.receiver_conn, self.test_address)
+        self.logger.log("on_start: Creating sender")
+        self.sender = event.container.create_sender(self.sender_conn, self.test_address)
+        self.logger.log("on_start: done")
 
     def send(self):
         while self.sender.credit > 0 and self.n_sent < self.count:
@@ -2031,10 +2034,10 @@ class OversizeMessageTransferTest(MessagingHandler):
             # Receiving any is an error.
             self.error = "Received a message. Expected to receive no messages."
             self.logger.log(self.error)
-            _shut_down_test()
+            self._shut_down_test()
         else:
             self.n_rcvd += 1
-            _check_done()
+            self._check_done()
 
     def _shut_down_test(self):
         if self.timer:
@@ -2104,7 +2107,9 @@ class OversizeMessageTransferTest(MessagingHandler):
         try:
             Container(self).run()
         except Exception as e:
-            self.logger.log("Container run exception: %s" % (e))
+            self.error = "Container run exception: %s" % (e)
+            self.logger.log(self.error)
+            self.logger.dump()
 
 class MaxMessageSizeBlockOversize(TestCase):
     """
@@ -2200,78 +2205,162 @@ class MaxMessageSizeBlockOversize(TestCase):
         cls.EA1.wait_connectors()
         cls.EB1.wait_connectors()
 
-    def address(self):
-        return self.routers[0].addresses[0]
-
     def test_41_block_oversize_INTA_INTA(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
-                                           MaxMessageSizeBlockOversize.INT_A.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.INT_A,
+                                           "examples",
                                            message_size=100100, expect_block=True)
         test.run()
         if test.error is not None:
+            test.logger.log("test_41 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_41 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
     def test_42_block_oversize_INTA_INTB(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
-                                           MaxMessageSizeBlockOversize.INT_B.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.INT_B,
+                                           "examples",
                                            message_size=100100, expect_block=True)
         test.run()
         if test.error is not None:
+            test.logger.log("test_42 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_42 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
     def test_43_block_oversize_EA1_EA1(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
-                                           MaxMessageSizeBlockOversize.EA1.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.EA1,
+                                           "examples",
                                            message_size=50100, expect_block=True)
         test.run()
         if test.error is not None:
+            test.logger.log("test_43 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_43 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
     def test_44_block_oversize_EA1_INTA(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
-                                           MaxMessageSizeBlockOversize.INT_A.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.INT_A,
+                                           "examples",
                                            message_size=50100, expect_block=True)
         test.run()
         if test.error is not None:
+            test.logger.log("test_44 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_44 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
     def test_45_block_oversize_EA1_INTB(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
-                                           MaxMessageSizeBlockOversize.INT_B.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.INT_B,
+                                           "examples",
                                            message_size=50100, expect_block=True)
         test.run()
         if test.error is not None:
+            test.logger.log("test_45 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_45 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
+
+    def test_46_block_oversize_EA1_EB1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.EB1,
+                                           "examples",
+                                           message_size=50100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_46 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_47_block_oversize_INTA_EB1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.EB1,
+                                           "examples",
+                                           message_size=100100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_47 test error: %s" % (test.error))
+            test.logger.dump()
         self.assertTrue(test.error is None)
 
     #
     # tests under maxMessageSize should not block
     #
     def test_51_allow_undersize_INTA_INTA(self):
-        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
-                                           MaxMessageSizeBlockOversize.INT_A.listener,
-                                           "examples", "examples",
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.INT_A,
+                                           "examples",
                                            message_size=99900, expect_block=False)
         test.run()
         if test.error is not None:
+            test.logger.log("test_51 test error: %s" % (test.error))
             test.logger.dump()
-            print("test_51 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
+    def test_52_allow_undersize_INTA_INTB(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.INT_B,
+                                           "examples",
+                                           message_size=99900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_52 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_53_allow_undersize_EA1_EA1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.EA1,
+                                           "examples",
+                                           message_size=49900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_53 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_54_allow_undersize_EA1_INTA(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.INT_A,
+                                           "examples",
+                                           message_size=49900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_54 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_55_allow_undersize_EA1_INTB(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.INT_B,
+                                           "examples",
+                                           message_size=49900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_55 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_56_allow_undersize_EA1_EB1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
+                                           MaxMessageSizeBlockOversize.EB1,
+                                           "examples",
+                                           message_size=49900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_56 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
+
+    def test_57_allow_undersize_INTA_EB1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
+                                           MaxMessageSizeBlockOversize.EB1,
+                                           "examples",
+                                           message_size=99900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.log("test_57 test error: %s" % (test.error))
+            test.logger.dump()
+        self.assertTrue(test.error is None)
 
 
 if __name__ == '__main__':
