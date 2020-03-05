@@ -37,6 +37,8 @@ from qpid_dispatch_internal.policy.policy_util import is_ipv6_enabled
 from qpid_dispatch_internal.compat import dict_iteritems
 from test_broker import FakeBroker
 
+W_THREADS = 2
+
 class AbsoluteConnectionCountLimit(TestCase):
     """
     Verify that connections beyond the absolute limit are denied and counted
@@ -2091,30 +2093,91 @@ class MaxMessageSizeBlockOversize(TestCase):
     def setUpClass(cls):
         """Start the router"""
         super(MaxMessageSizeBlockOversize, cls).setUpClass()
-        config = Qdrouterd.Config([
-            ('router', {'mode': 'standalone', 'id': 'MaxMessageSize1'}),
-            ('listener', {'port': cls.tester.get_port()}),
-            ('policy', {'maxConnections': 100, 'enableVhostPolicy': 'true', 'maxMessageSize': 100000,
-                        'defaultVhost': '$default'}),
-            ('vhost', {
-                'hostname': '$default',
-                'allowUnknownUser': 'true',
-                'groups': [(
-                    '$default', {
-                        'users': '*',
-                        'maxConnections': 100,
-                        'remoteHosts': '*',
-                        'sources': '*',
-                        'targets': '*',
-                        'allowAnonymousSender': 'true',
-                        'allowWaypointLinks': 'true',
-                        'allowDynamicSource': 'true'
-                    }
-                )]
-            })
-        ])
+
+        def router(name, mode, max_size, extra):
+            config = [
+                ('router', {'mode': mode,
+                            'id': name,
+                            'allowUnsettledMulticast': 'yes',
+                            'workerThreads': W_THREADS}),
+                ('listener', {'role': 'normal',
+                              'port': cls.tester.get_port()}),
+                ('address', {'prefix': 'multicast', 'distribution': 'multicast'}),
+                ('policy', {'maxConnections': 100, 'enableVhostPolicy': 'true', 'maxMessageSize': max_size, 'defaultVhost': '$default'}),
+                ('vhost', {'hostname': '$default', 'allowUnknownUser': 'true',
+                    'groups': [(
+                        '$default', {
+                            'users': '*',
+                            'maxConnections': 100,
+                            'remoteHosts': '*',
+                            'sources': '*',
+                            'targets': '*',
+                            'allowAnonymousSender': 'true',
+                            'allowWaypointLinks': 'true',
+                            'allowDynamicSource': 'true'
+                        }
+                    )]}
+                )
+            ]
+
+            if extra:
+                config.extend(extra)
+            config = Qdrouterd.Config(config)
+            cls.routers.append(cls.tester.qdrouterd(name, config, wait=True))
+            return cls.routers[-1]
+
+        # configuration:
+        # two edge routers connected via 2 interior routers.
+        #
+        #  +-------+    +---------+    +---------+    +-------+
+        #  |  EA1  |<==>|  INT.A  |<==>|  INT.B  |<==>|  EB1  |
+        #  +-------+    +---------+    +---------+    +-------+
+        #
+
         cls.routers = []
-        cls.routers.append(cls.tester.qdrouterd('MaxMessageSizeBlockOversize', config, wait=True))
+
+        interrouter_port = cls.tester.get_port()
+        cls.INTA_edge_port   = cls.tester.get_port()
+        cls.INTB_edge_port   = cls.tester.get_port()
+
+        router('INT.A', 'interior', 100000,
+               [('listener', {'role': 'inter-router',
+                              'port': interrouter_port}),
+                ('listener', {'role': 'edge', 'port': cls.INTA_edge_port})])
+        cls.INT_A = cls.routers[0]
+        cls.INT_A.listener = cls.INT_A.addresses[0]
+
+        router('INT.B', 'interior', 100000,
+               [('connector', {'name': 'connectorToA',
+                               'role': 'inter-router',
+                               'port': interrouter_port}),
+                ('listener', {'role': 'edge',
+                              'port': cls.INTB_edge_port})])
+        cls.INT_B = cls.routers[1]
+        cls.INT_B.listener = cls.INT_B.addresses[0]
+
+        router('EA1', 'edge', 50000,
+               [('listener', {'name': 'rc', 'role': 'route-container',
+                              'port': cls.tester.get_port()}),
+                ('connector', {'name': 'uplink', 'role': 'edge',
+                               'port': cls.INTA_edge_port})])
+        cls.EA1 = cls.routers[2]
+        cls.EA1.listener = cls.EA1.addresses[0]
+
+        router('EB1', 'edge', 50000,
+               [('connector', {'name': 'uplink',
+                               'role': 'edge',
+                               'port': cls.INTB_edge_port,
+                               'maxFrameSize': 1024}),
+                ('listener', {'name': 'rc', 'role': 'route-container',
+                              'port': cls.tester.get_port()})])
+        cls.EB1 = cls.routers[3]
+        cls.EB1.listener = cls.EB1.addresses[0]
+
+        cls.INT_A.wait_router_connected('INT.B')
+        cls.INT_B.wait_router_connected('INT.A')
+        cls.EA1.wait_connectors()
+        cls.EB1.wait_connectors()
 
     def address(self):
         return self.routers[0].addresses[0]
