@@ -2247,16 +2247,16 @@ class MaxMessageSizeBlockOversize(TestCase):
             print("test_44 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
-    #def test_45_block_oversize_EA1_INTB(self):
-    #    test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
-    #                                       MaxMessageSizeBlockOversize.INT_B.listener,
-    #                                       "examples", "examples",
-    #                                       message_size=50100, expect_block=True)
-    #    test.run()
-    #    if test.error is not None:
-    #        test.logger.dump()
-    #        print("test_45 test error: %s" % (test.error))
-    #    self.assertTrue(test.error is None)
+    def test_45_block_oversize_EA1_INTB(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
+                                           MaxMessageSizeBlockOversize.INT_B.listener,
+                                           "examples", "examples",
+                                           message_size=50100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.dump()
+            print("test_45 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
 
     #
     # tests under maxMessageSize should not block
