@@ -1957,18 +1957,25 @@ class MaxMessageSize1(TestCase):
 class OversizeMessageTransferTest(MessagingHandler):
     """
     This test connects a sender and a receiver. Then it sends _count_ number  of messages
-    of the given size expecting that the messages will be rejected by the router. The
-    receiver may receive aborted indications but that is not guaranteed. If the router
-    tries to abort an outbound message and none of that message has yet to go to the
-    wire then the delivery and the related message are simply discarded.
+    of the given size optionally expecting that the messages will be rejected by the router.
+
+    With expect_block=True sender messages should be rejected.
+    The receiver may receive aborted indications but that is not guaranteed.
+    The test is a success when n_rejected == count.
+
+    With expect_block=False sender messages should be received normally.
+    The test is a success when n_accepted == count.
     """
-    def __init__(self, sender_host, receiver_host, sender_address, receiver_address, msg_size):
+    def __init__(self, sender_host, receiver_host, sender_address, receiver_address,
+                 message_size=100000, count=10, expect_block=True):
         super(OversizeMessageTransferTest, self).__init__()
         self.sender_host = sender_host
         self.receiver_host = receiver_host
         self.sender_address = sender_address
         self.receiver_address = receiver_address
-        self.msg_size = msg_size
+        self.msg_size = message_size
+        self.count = count
+        self.expect_block = expect_block
 
         self.sender_conn = None
         self.receiver_conn = None
@@ -1977,19 +1984,18 @@ class OversizeMessageTransferTest(MessagingHandler):
         self.receiver = None
         self.proxy = None
 
-        self.count = 10
         self.n_sent = 0
         self.n_rcvd = 0
         self.n_accepted = 0
         self.n_rejected = 0
         self.n_aborted = 0
 
-        self.logger = Logger(print_to_console=True)
+        self.logger = Logger() # (print_to_console=True)
         self.log_unhandled = False
 
     def timeout(self):
-        self.error = "Timeout Expired: n_sent=%d n_rejected=%d n_aborted=%d" % \
-                     (self.n_sent, self.n_rejected, self.n_aborted)
+        self.error = "Timeout Expired: n_sent=%d n_rcvd=%d n_rejected=%d n_aborted=%d" % \
+                     (self.n_sent, self.n_rcvd, self.n_rejected, self.n_aborted)
         self.logger.log("self.timeout " + self.error)
         self.sender_conn.close()
         self.receiver_conn.close()
@@ -2005,9 +2011,12 @@ class OversizeMessageTransferTest(MessagingHandler):
     def send(self):
         while self.sender.credit > 0 and self.n_sent < self.count:
             self.n_sent += 1
-            body_msg = "Message %d of %d" % (self.n_sent, self.count)
-            self.logger.log("send. size=%d, message=%s" % (self.msg_size, body_msg))
-            body_msg += "*" * self.msg_size
+            body_msg = "Message %d of %d " % (self.n_sent, self.count)
+            self.logger.log("send. size=%d, message_prefix=%s" % (self.msg_size, body_msg))
+            pad_len = self.msg_size - len(body_msg)
+            if pad_len > 0:
+                cc = "@abcdefghijklmnopqrstuvwxyz"[self.n_sent % 27]
+                body_msg += cc * pad_len # raw string length padded to message size (or ~20 minimum)
             m = Message(body=body_msg)
             self.sender.send(m)
 
@@ -2017,34 +2026,46 @@ class OversizeMessageTransferTest(MessagingHandler):
             self.send()
 
     def on_message(self, event):
-        # all messages should violate maxMessageSize and receiving any is an error
-        self.error = "Received a message. Expected to receive no messages."
-        self.logger.log(self.error)
-        self.sender_conn.close()
-        self.receiver_conn.close()
+        if self.expect_block:
+            # All messages should violate maxMessageSize.
+            # Receiving any is an error.
+            self.error = "Received a message. Expected to receive no messages."
+            self.logger.log(self.error)
+            _shut_down_test()
+        else:
+            self.n_rcvd += 1
+            _check_done()
+
+    def _shut_down_test(self):
         if self.timer:
             self.timer.cancel()
             self.timer = None
+        if self.sender:
+            self.sender.close()
+            self.sender = None
+        if self.receiver:
+            self.receiver.close()
+            self.receiver = None
+        if self.sender_conn:
+            self.sender_conn.close()
+            self.sender_conn = None
+        if self.receiver_conn:
+            self.receiver_conn.close()
+            self.receiver_conn = None
 
     def _check_done(self):
-        self.logger.log("check_done: sent=%s rejected=%s aborted=%s" %
-                        (self.n_sent, self.n_rejected, self.n_aborted))
-        if (self.n_sent == self.count
-            and self.n_sent == self.n_rejected):
+        current = ("check_done: sent=%d rcvd=%d rejected=%d aborted=%d" %
+                   (self.n_sent, self.n_rcvd, self.n_rejected, self.n_aborted))
+        self.logger.log(current)
 
+        done = (self.n_sent == self.count and
+                self.n_rejected == self.count) if self.expect_block else \
+            (self.n_sent == self.count and
+             self.n_rcvd == self.count)
+        if done:
             self.logger.log("TEST DONE!!!")
-            self.log_unhandled = True
-
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-
-            if self.sender_conn:
-                self.sender_conn.close()
-                self.sender_conn = None
-            if self.receiver_conn:
-                self.receiver_conn.close()
-                self.receiver_conn = None
+            # self.log_unhandled = True # verbose debugging
+            self._shut_down_test()
 
     def on_rejected(self, event):
         self.logger.log("on_rejected: entry")
@@ -2182,26 +2203,75 @@ class MaxMessageSizeBlockOversize(TestCase):
     def address(self):
         return self.routers[0].addresses[0]
 
-    def test_41_block_oversize_message(self):
-        logger = Logger(print_to_console=True)
-        test = OversizeMessageTransferTest(self.routers[0].addresses[0],
-                                           self.routers[0].addresses[0],
-                                           "examples",
-                                           "examples",
-                                           110000)
+    def test_41_block_oversize_INTA_INTA(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
+                                           MaxMessageSizeBlockOversize.INT_A.listener,
+                                           "examples", "examples",
+                                           message_size=100100, expect_block=True)
         test.run()
-
+        if test.error is not None:
+            test.logger.dump()
+            print("test_41 test error: %s" % (test.error))
         self.assertTrue(test.error is None)
 
-        qd_manager = QdManager(self, self.address())
-        num_oversize = 0
-        logs = qd_manager.get_log()
-        for log in logs:
-            if u'POLICY' in log[0]:
-                if "maxMessageSize" in log[2]:
-                    logger.log("found log messgage: %s" % (log[2]))
-                    num_oversize += 1
-        self.assertEqual(10, num_oversize)
+    def test_42_block_oversize_INTA_INTB(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
+                                           MaxMessageSizeBlockOversize.INT_B.listener,
+                                           "examples", "examples",
+                                           message_size=100100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.dump()
+            print("test_42 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
+
+    def test_43_block_oversize_EA1_EA1(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
+                                           MaxMessageSizeBlockOversize.EA1.listener,
+                                           "examples", "examples",
+                                           message_size=50100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.dump()
+            print("test_43 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
+
+    def test_44_block_oversize_EA1_INTA(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
+                                           MaxMessageSizeBlockOversize.INT_A.listener,
+                                           "examples", "examples",
+                                           message_size=50100, expect_block=True)
+        test.run()
+        if test.error is not None:
+            test.logger.dump()
+            print("test_44 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
+
+    #def test_45_block_oversize_EA1_INTB(self):
+    #    test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1.listener,
+    #                                       MaxMessageSizeBlockOversize.INT_B.listener,
+    #                                       "examples", "examples",
+    #                                       message_size=50100, expect_block=True)
+    #    test.run()
+    #    if test.error is not None:
+    #        test.logger.dump()
+    #        print("test_45 test error: %s" % (test.error))
+    #    self.assertTrue(test.error is None)
+
+    #
+    # tests under maxMessageSize should not block
+    #
+    def test_51_allow_undersize_INTA_INTA(self):
+        test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A.listener,
+                                           MaxMessageSizeBlockOversize.INT_A.listener,
+                                           "examples", "examples",
+                                           message_size=99900, expect_block=False)
+        test.run()
+        if test.error is not None:
+            test.logger.dump()
+            print("test_51 test error: %s" % (test.error))
+        self.assertTrue(test.error is None)
+
 
 
 if __name__ == '__main__':
