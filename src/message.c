@@ -1260,6 +1260,7 @@ qd_message_t *discard_receive(pn_delivery_t *delivery,
             pn_record_t *record = pn_delivery_attachments(delivery);
             pn_record_set(record, PN_DELIVERY_CTX, 0);
             if (msg->content->oversize) {
+                qd_log(qd_policy_log_source(), QD_LOG_CRITICAL, "***** OVERSIZE, REJECTED, SETTLED");
                 pn_delivery_update(delivery, PN_REJECTED);
                 pn_delivery_settle(delivery);
                 // Oversize messages are also marked as aborted
