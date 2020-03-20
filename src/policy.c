@@ -42,20 +42,12 @@
 //
 static sys_mutex_t *stats_lock = 0;
 
-<<<<<<< HEAD
 static uint64_t n_connections = 0;
 static uint64_t n_denied = 0;
 static uint64_t n_processed = 0;
 static uint64_t n_links_denied = 0;
+static uint64_t n_maxsize_messages_denied = 0;
 static uint64_t n_total_denials = 0;
-=======
-static int n_connections = 0;
-static int n_denied = 0;
-static int n_processed = 0;
-static int n_links_denied = 0;
-static int n_maxsize_messages_denied = 0;
-static int n_total_denials = 0;
->>>>>>> DISPATCH-975: Enforce max message size on message ingress v3
 
 //
 // error conditions signaled to effect denial
@@ -319,28 +311,21 @@ void qd_policy_socket_close(qd_policy_t *policy, const qd_connection_t *conn)
         qd_python_unlock(lock_state);
     }
     const char *hostname = qd_connection_name(conn);
-    int ssnDenied = 0;
-    int sndDenied = 0;
-    int rcvDenied = 0;
-    int sizDenied = 0;
+    uint64_t ssnDenied = 0;
+    uint64_t sndDenied = 0;
+    uint64_t rcvDenied = 0;
+    uint64_t sizDenied = 0;
     if (conn->policy_settings && conn->policy_settings->denialCounts) {
         ssnDenied = conn->policy_settings->denialCounts->sessionDenied;
         sndDenied = conn->policy_settings->denialCounts->senderDenied;
         rcvDenied = conn->policy_settings->denialCounts->receiverDenied;
         sizDenied = conn->policy_settings->denialCounts->maxSizeMessagesDenied;
-    }
-    qd_log(policy->log_source, QD_LOG_DEBUG, 
-<<<<<<< HEAD
+        qd_log(policy->log_source, QD_LOG_DEBUG,
            "[C%"PRIu64"] Connection '%s' closed with resources n_sessions=%d, n_senders=%d, n_receivers=%d, "
-           "sessions_denied=%d, senders_denied=%d, receivers_denied=%d. nConnections= %d.",
+           "sessions_denied=%ld, senders_denied=%ld, receivers_denied=%ld. nConnections= %ld.",
             conn->connection_id, hostname, conn->n_sessions, conn->n_senders, conn->n_receivers,
-            ssnDenied, sndDenied, rcvDenied, n_connections);
-=======
-           "Connection '%s' closed with resources n_sessions=%d, n_senders=%d, n_receivers=%d, "
-           "sessions_denied=%d, senders_denied=%d, receivers_denied=%d max_size_transfers_denied=%d. nConnections= %d.",
-            hostname, conn->n_sessions, conn->n_senders, conn->n_receivers,
             ssnDenied, sndDenied, rcvDenied, sizDenied, n_connections);
->>>>>>> DISPATCH-975: Enforce max message size on message ingress v3
+    }
 }
 
 

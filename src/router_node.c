@@ -389,20 +389,19 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
             // reject and settle the incoming delivery
             pn_delivery_update(pnd, PN_REJECTED);
             pn_delivery_settle(pnd);
-            // consume the delivery incoming from proton
-            ////pn_link_advance(pn_link);
-            next_delivery = pn_link_current(pn_link) != 0;
+            pn_link_flow(pn_link, 1);
             // consume the delivery or deliveries outbound from this delivery
             if (delivery) {
-                // if delivery already exists then the core thread discarded this
-                // delivery, it will eventually free the qdr_delivery_t and its
-                // associated message - do not free it here.
+                // deliver_continue prevents leaking link_work and link_ref = 1 at shutdown
+                // true/false makes no difference
+                qdr_deliver_continue(router->router_core, delivery, false);
                 qdr_node_disconnect_deliveries(router->router_core, link, delivery, pnd);
             } else {
+                qd_log(qd_policy_log_source(), QD_LOG_CRITICAL, "HACK - no delivery ????????????????????????????");
                 qd_message_free(msg);
             }
         }
-        return next_delivery;
+        return pn_link_current(pn_link) != 0;
         // oversize messages are not processed any further
     }
 

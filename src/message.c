@@ -943,6 +943,8 @@ qd_message_t *qd_message()
     sys_atomic_init(&msg->content->ref_count, 1);
     msg->content->parse_depth = QD_DEPTH_NONE;
 
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK***** msg:%16p, content:%16p qd_message()",
+           (void*)msg, (void*)msg->content);
     return (qd_message_t*) msg;
 }
 
@@ -952,6 +954,9 @@ void qd_message_free(qd_message_t *in_msg)
     if (!in_msg) return;
     uint32_t rc;
     qd_message_pvt_t     *msg     = (qd_message_pvt_t*) in_msg;
+
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK***** msg:%16p, content:%16p qd_message_free()",
+           (void*)msg, (void*)msg->content);
 
     qd_buffer_list_free_buffers(&msg->ma_to_override);
     qd_buffer_list_free_buffers(&msg->ma_trace);
@@ -1047,6 +1052,8 @@ qd_message_t *qd_message_copy(qd_message_t *in_msg)
 
     sys_atomic_inc(&content->ref_count);
 
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK***** msg:%16p, content:%16p qd_message_copy()",
+           (void*)copy, (void*)copy->content);
     return (qd_message_t*) copy;
 }
 
@@ -1313,6 +1320,8 @@ qd_message_t *qd_message_receive(pn_delivery_t *delivery)
         msg->content->max_message_size = qd_connection_max_message_size(qdc);
     }
 
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK***** msg:%16p, content:%16p pn_delivery:%16p qd_message_receive()",
+           (void*)msg, (void*)msg->content, (void*)delivery);
     //
     // The discard flag indicates we should keep reading the input stream
     // but not process the message for delivery.
@@ -1595,6 +1604,9 @@ void qd_message_send(qd_message_t *in_msg,
 
     *restart_rx                   = false;
     *q3_stalled                   = false;
+
+    qd_log(log_source, QD_LOG_CRITICAL, "HACK***** msg:%16p, content:%16p pn_delivery:%16p qd_message_send()",
+           (void*)msg, (void*)msg->content, (void*)pn_link_current(pnl));
 
     if (msg->sent_depth < QD_DEPTH_MESSAGE_ANNOTATIONS) {
 

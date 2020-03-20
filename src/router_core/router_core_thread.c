@@ -209,7 +209,7 @@ void *router_core_thread(void *arg)
             qdr_post_general_work_CT(core, work);
         }
     }
-
+    assert(DEQ_SIZE(core->action_list) == 0);
     qd_log(core->log, QD_LOG_INFO, "Router Core thread exited");
     return 0;
 }
