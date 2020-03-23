@@ -19,7 +19,6 @@
 
 #include "delivery.h"
 #include <inttypes.h>
-
 ALLOC_DEFINE(qdr_delivery_t);
 
 
@@ -49,6 +48,12 @@ qdr_link_t *qdr_delivery_link(const qdr_delivery_t *delivery)
     return delivery ? safe_deref_qdr_link_t(delivery->link_sp) : 0;
 }
 
+bool qdr_delivery_oversize(const qdr_delivery_t *delivery)
+{
+    if (!delivery)
+        return false;
+    return qd_message_oversize(delivery->msg);
+}
 
 bool qdr_delivery_send_complete(const qdr_delivery_t *delivery)
 {
