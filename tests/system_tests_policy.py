@@ -2526,7 +2526,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4b_block_oversize_EA1_EB1(self):
+    def test_4b_block_oversize_EA1_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e4b",
