@@ -1263,7 +1263,7 @@ qd_message_t *discard_receive(pn_delivery_t *delivery,
 #define DISCARD_BUFFER_SIZE (128 * 1024)
         char dummy[DISCARD_BUFFER_SIZE];
         ssize_t rc = pn_link_recv(link, dummy, DISCARD_BUFFER_SIZE);
-
+        qd_log(log_source, QD_LOG_CRITICAL, "HACK: discard_receive(): pn_link_receive return %zd. msg_in=%14p", rc, (void*)msg_in);
         if (rc == 0) {
             // have read all available pn_link incoming bytes
             break;
