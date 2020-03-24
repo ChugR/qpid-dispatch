@@ -2394,7 +2394,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         cls.EA1.wait_connectors()
         cls.EB1.wait_connectors()
 
-    def xtest_40_block_oversize_INTA_INTA(self):
+    def test_40_block_oversize_INTA_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e40",
@@ -2406,7 +2406,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_41_block_oversize_INTA_INTB(self):
+    def test_41_block_oversize_INTA_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e41",
@@ -2418,7 +2418,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_42_block_oversize_INTA_EA1(self):
+    def test_42_block_oversize_INTA_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e42",
@@ -2430,7 +2430,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_43_block_oversize_INTA_EB1(self):
+    def test_43_block_oversize_INTA_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e43",
@@ -2442,7 +2442,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_44_block_oversize_INTB_INTA(self):
+    def test_44_block_oversize_INTB_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e44",
@@ -2454,7 +2454,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_45_block_oversize_INTB_INTB(self):
+    def test_45_block_oversize_INTB_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e45",
@@ -2466,7 +2466,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_46_block_oversize_INTB_EA1(self):
+    def test_46_block_oversize_INTB_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e46",
@@ -2478,7 +2478,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_47_block_oversize_INTB_EB1(self):
+    def test_47_block_oversize_INTB_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e47",
@@ -2490,7 +2490,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_48_block_oversize_EA1_INTA(self):
+    def test_48_block_oversize_EA1_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e48",
@@ -2502,7 +2502,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_49_block_oversize_EA1_INTB(self):
+    def test_49_block_oversize_EA1_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e49",
@@ -2514,7 +2514,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4a_block_oversize_EA1_EA1(self):
+    def test_4a_block_oversize_EA1_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e4a",
@@ -2526,7 +2526,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4b_block_oversize_EA1_EB1(self):
+    def test_4b_block_oversize_EA1_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e4b",
@@ -2550,7 +2550,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4d_block_oversize_EB1_INTB(self):
+    def test_4d_block_oversize_EB1_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e4d",
@@ -2562,7 +2562,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4e_block_oversize_EB1_EA1(self):
+    def test_4e_block_oversize_EB1_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e4e",
@@ -2574,7 +2574,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4f_block_oversize_EB1_EB1(self):
+    def test_4f_block_oversize_EB1_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e4f",
@@ -2586,7 +2586,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_4g_block_oversize_EB1_INTA(self):
+    def test_4g_block_oversize_EB1_INTA(self):
         # allowed by EB1 but blocked by INT.A
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_A,
@@ -2602,7 +2602,7 @@ class MaxMessageSizeBlockOversize(TestCase):
     #
     # tests under maxMessageSize should not block
     #
-    def xtest_50_allow_undersize_INTA_INTA(self):
+    def test_50_allow_undersize_INTA_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e50",
@@ -2614,7 +2614,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_51_allow_undersize_INTA_INTB(self):
+    def test_51_allow_undersize_INTA_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e51",
@@ -2626,7 +2626,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_52_allow_undersize_INTA_EA1(self):
+    def test_52_allow_undersize_INTA_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e52",
@@ -2638,7 +2638,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_53_allow_undersize_INTA_EB1(self):
+    def test_53_allow_undersize_INTA_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e53",
@@ -2650,7 +2650,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_54_allow_undersize_INTB_INTA(self):
+    def test_54_allow_undersize_INTB_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e54",
@@ -2662,7 +2662,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_55_allow_undersize_INTB_INTB(self):
+    def test_55_allow_undersize_INTB_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e55",
@@ -2674,7 +2674,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_56_allow_undersize_INTB_EA1(self):
+    def test_56_allow_undersize_INTB_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e56",
@@ -2686,7 +2686,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_57_allow_undersize_INTB_EB1(self):
+    def test_57_allow_undersize_INTB_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_B,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e57",
@@ -2698,7 +2698,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_58_allow_undersize_EA1_INTA(self):
+    def test_58_allow_undersize_EA1_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e58",
@@ -2711,7 +2711,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_59_allow_undersize_EA1_INTB(self):
+    def test_59_allow_undersize_EA1_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e59",
@@ -2724,7 +2724,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_5a_allow_undersize_EA1_EA1(self):
+    def test_5a_allow_undersize_EA1_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e5a",
@@ -2737,7 +2737,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_5b_allow_undersize_EA1_EB1(self):
+    def test_5b_allow_undersize_EA1_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EA1,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e5b",
@@ -2749,7 +2749,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def xtest_5c_allow_undersize_EB1_INTA(self):
+    def test_5c_allow_undersize_EB1_INTA(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e5c",
@@ -2762,7 +2762,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_5d_allow_undersize_EB1_INTB(self):
+    def test_5d_allow_undersize_EB1_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e5d",
@@ -2775,7 +2775,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_5e_allow_undersize_EB1_EA1(self):
+    def test_5e_allow_undersize_EB1_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e5e",
@@ -2788,7 +2788,7 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
 
-    def xtest_5f_allow_undersize_EB1_EB1(self):
+    def test_5f_allow_undersize_EB1_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e5f",

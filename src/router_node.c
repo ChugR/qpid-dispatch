@@ -691,10 +691,11 @@ static void deferred_AMQP_rx_handler(void *context, bool discard)
         if (!!qdl) {
             qd_router_t *qdr = (qd_router_t*) qd_link_get_node_context(qdl);
             assert(qdr != 0);
-            while (true) {
+            for (int i=0; i<50; i++) {
                 if (!AMQP_rx_handler(qdr, qdl))
                     break;
             }
+            qd_log(qd_policy_log_source(), QD_LOG_CRITICAL, "******* HACK - deferred_AMQP_rx_handler fallthrough ");
         }
     }
 
