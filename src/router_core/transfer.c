@@ -185,13 +185,20 @@ int qdr_link_process_deliveries(qdr_core_t *core, qdr_link_t *link, int credit)
                     DEQ_REMOVE_HEAD(link->undelivered);
                     dlv->link_work = 0;
 
-                    if (settled || qdr_delivery_oversize(dlv)) {
+                    if (settled) {
                         //
                         // The settled and the oversize case are similar. There is going to be no settlement coming for this delivery.
                         // We should decref it and set its "where" to QDR_DELIVERY_NOWHERE
                         //
                         dlv->where = QDR_DELIVERY_NOWHERE;
                         qdr_delivery_decref(core, dlv, "qdr_link_process_deliveries - remove from undelivered list");
+                    } else if (qdr_delivery_oversize(dlv)) {
+                        //
+                        // The settled and the oversize case are similar. There is going to be no settlement coming for this delivery.
+                        // We should decref it and set its "where" to QDR_DELIVERY_NOWHERE
+                        //
+                        dlv->where = QDR_DELIVERY_NOWHERE;
+                        qdr_delivery_decref(core, dlv, "qdr_link_process_deliveries - remove OVERSIZE from undelivered list");
                     } else {
                         DEQ_INSERT_TAIL(link->unsettled, dlv);
                         dlv->where = QDR_DELIVERY_IN_UNSETTLED;

@@ -2543,7 +2543,7 @@ class MaxMessageSizeBlockOversize(TestCase):
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e4c",
                                            message_size=EB1_MAX_SIZE + OVER_UNDER,
-                                           expect_block=True, count=1)
+                                           expect_block=True, count=10)
         test.run()
         if test.error is not None:
             test.logger.log("test_4c test error: %s" % (test.error))
