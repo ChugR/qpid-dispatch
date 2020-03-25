@@ -215,10 +215,16 @@ static void do_receive(pn_link_t *pn_link, pn_delivery_t *pnd)
 
     if (link) {
         qd_node_t *node = link->node;
+        bool breakout = false;
         if (node) {
-            while (true) {
-                if (!node->ntype->rx_handler(node->context, link))
+            for (int i=0; i<50; i++) {
+                if (!node->ntype->rx_handler(node->context, link)) {
+                    breakout = true;
                     break;
+                }
+            }
+            if (!breakout) {
+                qd_log(qd_log_source("CONTAINER"), QD_LOG_CRITICAL, "^^^^^^ HACK WHILETRUE container.c do_receive()");
             }
             return;
         }
