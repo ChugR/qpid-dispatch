@@ -1967,7 +1967,7 @@ class OversizeMessageTransferTest(MessagingHandler):
     The test is a success when n_accepted == count.
     """
     def __init__(self, sender_host, receiver_host, test_address,
-                 message_size=100000, count=10, expect_block=True):
+                 message_size=100000, count=1, expect_block=True):
         super(OversizeMessageTransferTest, self).__init__()
         self.sender_host = sender_host
         self.receiver_host = receiver_host
@@ -2447,7 +2447,7 @@ class MaxMessageSizeBlockOversize(TestCase):
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e44",
                                            message_size=INTB_MAX_SIZE + OVER_UNDER,
-                                           expect_block=True, count=10)
+                                           expect_block=True)
         test.run()
         if test.error is not None:
             test.logger.log("test_44 test error: %s" % (test.error))
@@ -2543,7 +2543,7 @@ class MaxMessageSizeBlockOversize(TestCase):
                                            MaxMessageSizeBlockOversize.INT_A,
                                            "e4c",
                                            message_size=EB1_MAX_SIZE + OVER_UNDER,
-                                           expect_block=True, count=10)
+                                           expect_block=True)
         test.run()
         if test.error is not None:
             test.logger.log("test_4c test error: %s" % (test.error))
