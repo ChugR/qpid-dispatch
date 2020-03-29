@@ -923,6 +923,31 @@ def main_except(argv):
 
     print("<hr>")
 
+
+    # HACK ALERT - data for source to be used at sequencediagram.org
+    print("<h3>sequencediagram.org data</h3>")
+    for plf in tree:
+        rtr = plf.router
+        rid = comn.router_display_names[rtr.log_index]
+        peer = rtr.conn_peer_display.get(plf.data.conn_id, "")
+        if peer.startswith("<"):
+            peer = peer[peer.find(">")+1:]
+            peer = peer[:peer.find("<")]
+        # TODO: differentiate between peer sender and peer receiver
+        # This is not so easy as test code uses the same container id for all connections
+        # Easiest thing to do is append peer with router_id. Does not fix tests with sender/receiver
+        # to same router.
+        if peer.startswith("peer"):
+            peer += "_" + rid
+        #TODO handle EOS, connection open/close lines
+        if (not plf.data.sdorg_str == "" and
+            not plf.data.direction == "" and
+            not plf.data.sdorg_str.startswith("HELP")):
+            print("%s| %s| %s| %s| %s" % (rid, plf.data.direction, peer, plf.data.sdorg_str, ("%s#%d" % (plf.prefixi, plf.lineno))))
+        #import pdb
+        #pdb.set_trace()
+    print("<hr>")
+
     print("</body>")
 
 
