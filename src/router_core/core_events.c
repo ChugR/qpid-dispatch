@@ -119,6 +119,9 @@ void qdrc_event_link_raise(qdr_core_t *core, qdrc_event_t event, qdr_link_t *lin
 void qdrc_event_addr_raise(qdr_core_t *core, qdrc_event_t event, qdr_address_t *addr)
 {
     qdrc_event_subscription_t *sub = DEQ_HEAD(core->addr_event_subscriptions);
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, 
+           "qdrc_event_addr_raise(): core:%p, event:%08x, addr:%p, address:%s",
+           (void*)core, (int)event, (void*)addr, qd_hash_key_by_handle(addr->hash_handle));
 
     while (sub) {
         if (sub->events & event)

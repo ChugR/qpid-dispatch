@@ -207,6 +207,9 @@ static void add_outlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_
 
 static void del_outlink(qcm_edge_addr_proxy_t *ap, qdr_address_t *addr)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, 
+           "del_outlink(): ap:%p, addr:%p, edge_outlink:%p, address:%s",
+           (void*)ap, (void*)addr, (void*)addr->edge_outlink, qd_hash_key_by_handle(addr->hash_handle));
     qdr_link_t *link = addr->edge_outlink;
     if (link) {
         addr->edge_outlink = 0;
@@ -343,6 +346,10 @@ static void on_conn_event(void *context, qdrc_event_t event, qdr_connection_t *c
 
 static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, 
+           "on_addr_event(): context-qcm_edge_addr_proxy:%p, event:%08x, addr:%p, address:%s",
+           (void*)context, (int)event, (void*)addr, qd_hash_key_by_handle(addr->hash_handle));
+
     qcm_edge_addr_proxy_t *ap = (qcm_edge_addr_proxy_t*) context;
     qdr_link_ref_t        *link_ref;
 

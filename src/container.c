@@ -159,7 +159,7 @@ static void setup_outgoing_link(qd_container_t *container, pn_link_t *pn_link)
 }
 
 
-static void setup_incoming_link(qd_container_t *container, pn_link_t *pn_link)
+static void setup_incoming_link(qd_container_t *container, pn_link_t *pn_link, int max_size)
 {
     qd_node_t *node = container->default_node;
 
@@ -191,6 +191,9 @@ static void setup_incoming_link(qd_container_t *container, pn_link_t *pn_link)
     link->node       = node;
     link->remote_snd_settle_mode = pn_link_remote_snd_settle_mode(pn_link);
 
+    if (max_size) {
+        pn_link_set_max_message_size(pn_link, (uint64_t)max_size);
+    }
     pn_link_set_context(pn_link, link);
     node->ntype->incoming_handler(node->context, link);
 }
@@ -502,15 +505,16 @@ void qd_container_handle_event(qd_container_t *container, pn_event_t *event,
         break;
 
     case PN_CONNECTION_REMOTE_CLOSE :
+        qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "PN_CONN_REMOTE_CLOSE: qd_conn:%14p, conn:%14p, conn_state: %d", (void*)qd_conn, (void*)conn, (int)pn_connection_state(conn));
         if (qd_conn)
             qd_conn->closed = true;
         if (pn_connection_state(conn) == (PN_LOCAL_ACTIVE | PN_REMOTE_CLOSED)) {
-            close_links(container, conn, false);
+            close_links(container, conn, true);  // HACK ALERT
             qd_session_cleanup(qd_conn);
             pn_connection_close(conn);
             qd_conn_event_batch_complete(container, qd_conn, true);
         } else if (pn_connection_state(conn) == (PN_LOCAL_CLOSED | PN_REMOTE_CLOSED)) {
-            close_links(container, conn, false);
+            close_links(container, conn, true);  // HACK ALERT
             qd_session_cleanup(qd_conn);
             notify_closed(container, qd_conn, qd_connection_get_context(qd_conn));
             qd_conn_event_batch_complete(container, qd_conn, true);
@@ -652,7 +656,7 @@ void qd_container_handle_event(qd_container_t *container, pn_event_t *event,
                         }
                         qd_conn->n_senders++;
                     }
-                    setup_incoming_link(container, pn_link);
+                    setup_incoming_link(container, pn_link, qd_connection_max_message_size(qd_conn));
                 }
             } else if (pn_link_state(pn_link) & PN_LOCAL_ACTIVE)
                 handle_link_open(container, pn_link);
@@ -1202,6 +1206,8 @@ bool qd_session_is_q3_blocked(const qd_session_t *qd_ssn)
  */
 void qd_session_cleanup(qd_connection_t *qd_conn)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qd_session_cleanup: qd_conn:%14p, pn_conn:%14p",
+           (void*)qd_conn, (void*)qd_conn->pn_conn);
     pn_connection_t *pn_conn = (qd_conn) ? qd_conn->pn_conn : 0;
     if (!pn_conn)
         return;

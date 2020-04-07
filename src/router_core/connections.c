@@ -524,6 +524,7 @@ qdr_link_t *qdr_link_first_attach(qdr_connection_t *conn,
 {
     qdr_action_t   *action         = qdr_action(qdr_link_inbound_first_attach_CT, "link_first_attach");
     qdr_link_t     *link           = new_qdr_link_t();
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_link_first_attach(): new_qdr_link_t():%p", (void*)link);
     qdr_terminus_t *local_terminus = dir == QD_OUTGOING ? source : target;
 
     ZERO(link);
@@ -1022,6 +1023,7 @@ static void qdr_link_cleanup_CT(qdr_core_t *core, qdr_connection_t *conn, qdr_li
     if (link->reported_as_blocked)
         core->links_blocked--;
 
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_link_cleanup_CT(): free_qdr_link_t():%p", (void*)link);
     free_qdr_link_t(link);
 }
 
@@ -1059,6 +1061,7 @@ qdr_link_t *qdr_create_link_CT(qdr_core_t        *core,
     // Create a new link, initiated by the router core.  This will involve issuing a first-attach outbound.
     //
     qdr_link_t *link = new_qdr_link_t();
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_create_link_CT(): new_qdr_link_t():%p created by router core", (void*)link);
     ZERO(link);
 
     link->core           = core;

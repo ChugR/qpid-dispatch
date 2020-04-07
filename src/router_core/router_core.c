@@ -573,6 +573,11 @@ void qdr_core_bind_address_link_CT(qdr_core_t *core, qdr_address_t *addr, qdr_li
 
 void qdr_core_unbind_address_link_CT(qdr_core_t *core, qdr_address_t *addr, qdr_link_t *link)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, 
+           "qdr_core_unbind_address_link_CT(): core:%p, addr:%p, link:%p, address:%s, direction:%s",
+           (void*)core, (void*)addr, (void*)link, qd_hash_key_by_handle(addr->hash_handle),
+           link->link_direction == QD_OUTGOING ? "outgoing" : "incoming");
+
     link->owning_addr = 0;
 
     if (link->link_direction == QD_OUTGOING) {
@@ -690,6 +695,8 @@ void qdr_core_remove_address_config(qdr_core_t *core, qdr_address_config_t *addr
 
 void qdr_add_link_ref(qdr_link_ref_list_t *ref_list, qdr_link_t *link, int cls)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_add_link_ref(): ref_list:%p, link:%p, cls:%d",
+           (void*)ref_list, (void*)link, cls);
     if (link->ref[cls] != 0)
         return;
 
@@ -703,6 +710,8 @@ void qdr_add_link_ref(qdr_link_ref_list_t *ref_list, qdr_link_t *link, int cls)
 
 bool qdr_del_link_ref(qdr_link_ref_list_t *ref_list, qdr_link_t *link, int cls)
 {
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_del_link_ref(): ref_list:%p, link:%p, cls:%d",
+           (void*)ref_list, (void*)link, cls);
     if (link->ref[cls]) {
         DEQ_REMOVE(*ref_list, link->ref[cls]);
         free_qdr_link_ref_t(link->ref[cls]);

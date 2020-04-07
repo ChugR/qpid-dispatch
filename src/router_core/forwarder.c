@@ -896,6 +896,7 @@ void qdr_forward_link_direct_CT(qdr_core_t       *core,
                                 char             *insert)
 {
     qdr_link_t *out_link = new_qdr_link_t();
+    qd_log(qd_log_source("HACKALERT"), QD_LOG_CRITICAL, "qdr_forward_link_direct_CT(): new_qdr_link_t():%p", (void*)out_link);
     ZERO(out_link);
     out_link->core           = core;
     out_link->identity       = qdr_identifier(core);
