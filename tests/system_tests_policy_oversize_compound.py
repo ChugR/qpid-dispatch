@@ -37,6 +37,7 @@ from qpid_dispatch_internal.policy.policy_util import is_ipv6_enabled
 from qpid_dispatch_internal.compat import dict_iteritems
 from test_broker import FakeBroker
 
+# How many worker threads?
 W_THREADS = 2
 
 class Timeout(object):
@@ -56,22 +57,34 @@ class OversizeMessageTransferTest(MessagingHandler):
     This test connects a sender and a receiver. Then it tries to send _count_
     number of messages of the given size through the router or router network.
 
-    The ingress router should allow the sender's oversize message.
-    The message is blocked by the uplink router by rejecting the message
+    Messages are to pass through an edge router and get blocked by an interior
+    or messages are to be blocked by both the edge and the interior.
+
+    When 'blocked_by_both' is false then:
+
+    * The ingress router should allow the sender's oversize message.
+    * The message is blocked by the uplink router by rejecting the message
     and closing the connection between the interior and edge routers.
-    The receiver may receive
-    aborted message indications but that is not guaranteed. If any aborted
-    messages are received then the count must be at most one.
-    The test is a success when, when, when, who knows? HACK
+    * The receiver may receive aborted message indications but that is
+    not guaranteed.
+    * If any aborted messages are received then the count must be at most one.
+
+    When 'blocked_by_both' is true then:
+    * The ingress edge router will reject and close the connection on the first message
+    * The second message may be aborted because the connection between the
+    edge router and the interior router was closed
+    * The remainder of the messages are going into a closed connection and
+    will receive no settlement.
     """
     def __init__(self, sender_host, receiver_host, test_address,
-                 message_size=100000, count=10, print_to_console=False):
+                 message_size=100000, count=10, blocked_by_both=False, print_to_console=False):
         super(OversizeMessageTransferTest, self).__init__()
         self.sender_host = sender_host
         self.receiver_host = receiver_host
         self.test_address = test_address
         self.msg_size = message_size
         self.count = count
+        self.blocked_by_both = blocked_by_both
         self.expect_block = True
         self.messages = []
 
@@ -137,6 +150,8 @@ class OversizeMessageTransferTest(MessagingHandler):
                             self.test_address, self.n_sent, self.count, self.msg_size))
             self.sender.send(m)
             self.n_sent += 1
+        #if self.n_sent == self.count:
+        #    self.log_unhandled = True
 
     def on_sendable(self, event):
         if event.sender == self.sender:
@@ -158,6 +173,7 @@ class OversizeMessageTransferTest(MessagingHandler):
     def on_connection_error(self, event):
         if event.connection == self.sender_conn:
             if event.connection.remote_condition.name == "amqp:connection:message-size-exceeded":
+                self.logger.log("on_connection_error: sender closed with correct condition")
                 self.n_connection_error += 1
                 self.sender_conn.close()
                 self.sender_conn = None
@@ -198,8 +214,17 @@ class OversizeMessageTransferTest(MessagingHandler):
             self.logger.log("TEST FAIL")
             self._shut_down_test()
         else:
-            done = self.n_rejected == 1 and \
-                   self.n_send_settled == self.count
+            if not self.blocked_by_both:
+                # Blocked by interior only. Connection to edge stays up
+                # and all messages must be accounted for.
+                done = self.n_rejected == 1 and \
+                       self.n_send_settled == self.count
+            else:
+                # Blocked by interior and edge. Expect edge connection to go down
+                # and some of our messaages arrive at edge after it has sent
+                # AMQP close. Those messages are never settled. TODO: Is that OK?
+                done = self.n_rejected == 1 and \
+                       self.n_connection_error == 1
             if done:
                 self.logger.log("TEST DONE!!!")
                 # self.log_unhandled = True # verbose debugging
@@ -237,14 +262,11 @@ class OversizeMessageTransferTest(MessagingHandler):
     def on_link_error(self, event):
         self.error = event.link.remote_condition.name
         self.logger.log("on_link_error: %s" % (self.error))
-        #
-        # qpid-proton master @ 6abb4ce
-        # At this point the container is wedged and closing the connections does
-        # not get the container to exit.
-        # Instead, raise an exception that bypasses normal container exit.
-        # This class then returns something for the main test to evaluate.
-        #
+        # Link errors may prevent normal test shutdown so don't even try.
         raise Exception(self.error)
+
+    def on_reactor_final(self, event):
+        self.logger.log("on_reactor_final: I'd expect the Container.run function to return real soon now")
 
     def on_unhandled(self, method, *args):
         if self.log_unhandled:
@@ -406,15 +428,32 @@ class MaxMessageSizeBlockOversize(TestCase):
         return out
 
     def sense_n_closed_lines(self, routername):
+        """
+        Read a router's log file and count how many size-exceeded lines are in it.
+        :param routername:
+        :return: (int, int) tuple with counts of lines in and lines out
+        """
         with  open("../setUpClass/%s.log" % routername, 'r') as router_log:
             log_lines = router_log.read().split("\n")
-        closed_lines = [s for s in log_lines if "amqp:connection:message-size-exceeded" in s]
-        return len(closed_lines)
+        i_closed_lines = [s for s in log_lines if "amqp:connection:message-size-exceeded" in s and "<-" in s]
+        o_closed_lines = [s for s in log_lines if "amqp:connection:message-size-exceeded" in s and "->" in s]
+        return (len(i_closed_lines), len(o_closed_lines))
 
-    # verify that a message can go through an edge and get blocked by interior
-    # This test has a sender on EB1 and a receiver on the attached interior INT_B
+    # verify that a message can go through an edge EB1 and get blocked by interior INT.B
+    #
+    #  +-------+    +---------+    +---------+    +-------+
+    #  |  EA1  |<==>|  INT.A  |<==>|  INT.B  |<==>|  EB1  |
+    #  | 50,000|    | 100,000 |    | 150,000 |    |200,000|
+    #  +-------+    +---------+    +---------+    +-------+
+    #                                    |             ^
+    #                                    V             |
+    #                               +--------+    +-------+
+    #                               |receiver|    |sender |
+    #                               |        |    |199,800|
+    #                               +--------+    +-------+
+    #
     def test_60_block_oversize_EB1_INTB_at_INTB(self):
-        closed_before = self.sense_n_closed_lines("EB1")
+        ibefore, obefore = self.sense_n_closed_lines("EB1")
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e60",
@@ -427,14 +466,31 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
         # Verify that interrouter link was shut down
-        closed_after = self.sense_n_closed_lines("EB1")
-        if (not closed_after == (closed_before + 1)):
-            print("FAIL: N closed events in log file did not increment by 1. Before: %d, After: %d" % (closed_before, closed_after))
-            self.assertTrue(closed_after == (closed_before + 1), "Expected to receive close with condition: message size exceeded")
+        iafter, oafter = self.sense_n_closed_lines("EB1")
+        idelta = iafter - ibefore
+        odelta = oafter - obefore
+        success = odelta == 0 and idelta == 1
+        if (not success):
+            test.logger.log("FAIL: N closed events in log file did not increment by 1. oBefore: %d, oAfter: %d, iBefore:%d, iAfter:%d" %
+                            (obefore, oafter, ibefore, iafter))
+            test.logger.dump()
+            self.assertTrue(success), "Expected router to generate close with condition: message size exceeded"
 
-    # verify that a message can go through an edge and get blocked by interior
+    # verify that a message can go through an edge EB1 and get blocked by interior INT.B
+    #
+    #  +-------+    +---------+    +---------+    +-------+
+    #  |  EA1  |<==>|  INT.A  |<==>|  INT.B  |<==>|  EB1  |
+    #  | 50,000|    | 100,000 |    | 150,000 |    |200,000|
+    #  +-------+    +---------+    +---------+    +-------+
+    #      |                                           ^
+    #      V                                           |
+    #   +--------+                                +-------+
+    #   |receiver|                                |sender |
+    #   |        |                                |199,800|
+    #   +--------+                                +-------+
+    #
     def test_61_block_oversize_EB1_EA1_at_INTB(self):
-        closed_before = self.sense_n_closed_lines("EB1")
+        ibefore, obefore = self.sense_n_closed_lines("EB1")
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e61",
@@ -447,18 +503,36 @@ class MaxMessageSizeBlockOversize(TestCase):
         self.assertTrue(test.error is None)
 
         # Verify that interrouter link was shut down
-        closed_after = self.sense_n_closed_lines("EB1")
-        if (not closed_after == (closed_before + 1)):
-            print("FAIL: N closed events in log file did not increment by 1. Before: %d, After: %d" % (closed_before, closed_after))
-            self.assertTrue(closed_after == (closed_before + 1), "Expected to receive close with condition: message size exceeded")
+        iafter, oafter = self.sense_n_closed_lines("EB1")
+        idelta = iafter - ibefore
+        odelta = oafter - obefore
+        success = odelta == 0 and idelta == 1
+        if (not success):
+            test.logger.log("FAIL: N closed events in log file did not increment by 1. oBefore: %d, oAfter: %d, iBefore:%d, iAfter:%d" %
+                            (obefore, oafter, ibefore, iafter))
+            test.logger.dump()
+            self.assertTrue(success), "Expected router to generate close with condition: message size exceeded"
 
     # see what happens when a message must be blocked by edge and also by interior
-    def xtest_70_block_oversize_EB1_INTB_at_both(self):
-        closed_before = self.sense_n_closed_lines("EB1")
+    #
+    #  +-------+    +---------+    +---------+    +-------+
+    #  |  EA1  |<==>|  INT.A  |<==>|  INT.B  |<==>|  EB1  |
+    #  | 50,000|    | 100,000 |    | 150,000 |    |200,000|
+    #  +-------+    +---------+    +---------+    +-------+
+    #                                    |             ^
+    #                                    V             |
+    #                               +--------+    +-------+
+    #                               |receiver|    |sender |
+    #                               |        |    |200,200|
+    #                               +--------+    +-------+
+    #
+    def test_70_block_oversize_EB1_INTB_at_both(self):
+        ibefore, obefore = self.sense_n_closed_lines("EB1")
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.EB1,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e70",
                                            message_size=EB1_MAX_SIZE + OVER_UNDER,
+                                           blocked_by_both=True,
                                            print_to_console=False)
         test.run()
         if test.error is not None:
@@ -466,12 +540,28 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-        # Verify that interrouter link was shut down
-        closed_after = self.sense_n_closed_lines("EB1")
-        if (not closed_after == (closed_before + 1)):
-            print("FAIL: N closed events in log file did not increment by 1. Before: %d, After: %d" % (closed_before, closed_after))
-            self.assertTrue(closed_after == (closed_before + 1), "Expected to receive close with condition: message size exceeded")
+        time.sleep(0.2) # let routers clean up resources that otherwise appear leaked
 
+        # Verify that interrouter link was shut down
+        # EB1 must close connection to sender (odelta == 1) but
+        # INT.B may or may not close the edge-interior link. Sometimes EB1 senses the
+        # oversize condition before it has forwarded too many bytes of the first message
+        # to INT.B. Then EB1 aborts the first message to INT.B and INT.B never
+        # detects an oversize condition.
+        iafter, oafter = self.sense_n_closed_lines("EB1")
+        idelta = iafter - ibefore
+        odelta = oafter - obefore
+        success = odelta == 1 and (idelta == 0 or idelta == 1)
+        if (not success):
+            test.logger.log("FAIL: N closed events in log file did not increment by 1. oBefore: %d, oAfter: %d, iBefore:%d, iAfter:%d" %
+                            (obefore, oafter, ibefore, iafter))
+            test.logger.dump()
+            self.assertTrue(success), "Expected router to generate close with condition: message size exceeded"
+
+        #if (not closed_after == (closed_before + 2)):
+        #    print("FAIL: N closed events in log file did not increment by 2. Before: %d, After: %d" % (closed_before, closed_after))
+        #    sys.stdout.flush()
+        #    self.assertTrue(closed_after == (closed_before + 2), "Expected to receive and also to send close-with-condition: message size exceeded")
 
 
 if __name__ == '__main__':
