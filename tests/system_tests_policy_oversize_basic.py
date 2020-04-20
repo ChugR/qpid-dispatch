@@ -38,7 +38,7 @@ from qpid_dispatch_internal.compat import dict_iteritems
 from test_broker import FakeBroker
 
 # How many worker threads?
-W_THREADS = 2
+W_THREADS = 10
 
 # Define oversize denial condition
 OVERSIZE_CONDITION_NAME = "amqp:connection:forced"
@@ -795,7 +795,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def test_5g_if_any_timeout_then_dump_logs(self):
+    def xtest_5g_if_any_timeout_then_dump_logs(self):
         if os.path.exists(TEST_TIMEOUT_IND):
             for fn in ["INT.A", "INT.B", "EA1", "EB1"]:
                 filename = "../setUpClass/%s.log" % fn
