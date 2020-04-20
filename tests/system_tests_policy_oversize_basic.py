@@ -399,10 +399,10 @@ class MaxMessageSizeBlockOversize(TestCase):
         test.run()
         if test.error is not None:
             test.logger.log("test_40 test error: %s" % (test.error))
-            test.logger.dump()
+        test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def test_41_block_oversize_INTA_INTB(self):
+    def xtest_41_block_oversize_INTA_INTB(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.INT_B,
                                            "e41",
@@ -414,7 +414,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def test_42_block_oversize_INTA_EA1(self):
+    def xtest_42_block_oversize_INTA_EA1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EA1,
                                            "e42",
@@ -426,7 +426,7 @@ class MaxMessageSizeBlockOversize(TestCase):
             test.logger.dump()
         self.assertTrue(test.error is None)
 
-    def test_43_block_oversize_INTA_EB1(self):
+    def xtest_43_block_oversize_INTA_EB1(self):
         test = OversizeMessageTransferTest(MaxMessageSizeBlockOversize.INT_A,
                                            MaxMessageSizeBlockOversize.EB1,
                                            "e43",
