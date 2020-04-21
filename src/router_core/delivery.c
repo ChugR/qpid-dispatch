@@ -632,8 +632,10 @@ void qdr_delivery_decref_CT(qdr_core_t *core, qdr_delivery_t *dlv, const char *l
 
     qd_log(core->log, QD_LOG_DEBUG, "Delivery decref_CT:  dlv:%lx rc:%"PRIu32" link:%"PRIu64" %s", (long) dlv, ref_count - 1,  link_identity, label);
 
-    if (ref_count == 1)
+    if (ref_count == 1) {
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_delivery_decref_CT. qdr_deliver_t:%p", (void*)dlv);
         qdr_delete_delivery_internal_CT(core, dlv);
+    }
 }
 
 
@@ -1045,6 +1047,7 @@ void qdr_delivery_mcast_outbound_update_CT(qdr_core_t *core,
 static void qdr_delete_delivery_CT(qdr_core_t *core, qdr_action_t *action, bool discard)
 {
     if (!discard)
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_delete_delivery_CT. qdr_deliver_t:%p", (void*)action->args.delivery.delivery);
         qdr_delete_delivery_internal_CT(core, action->args.delivery.delivery);
 }
 

@@ -105,6 +105,7 @@ static qdr_delivery_t *qdr_node_delivery_qdr_from_pn(pn_delivery_t *dlv)
 
 void qd_link_abandoned_deliveries_handler(void *context, qd_link_t *link)
 {
+    qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler. link:%p", (void*)link);
     qd_router_t    *router = (qd_router_t*) context;
     qd_link_ref_list_t *list = qd_link_get_ref_list(link);
     qd_link_ref_t      *ref  = DEQ_HEAD(*list);
@@ -112,6 +113,7 @@ void qd_link_abandoned_deliveries_handler(void *context, qd_link_t *link)
     while (ref) {
         DEQ_REMOVE_HEAD(*list);
         qdr_delivery_t *dlv = (qdr_delivery_t*) ref->ref;
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler. link:%p, qdr_deliver_t:%p", (void*)link, (void*)dlv);
         ref->ref = 0;
         qdr_delivery_set_context(dlv, 0);
         qdr_delivery_decref(router->router_core, dlv, "qd_link_abandoned_deliveries_handler");
