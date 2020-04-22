@@ -139,14 +139,12 @@ void qd_link_abandoned_deliveries_handler(void *context, qd_link_t *link)
     qd_link_ref_t      *ref  = DEQ_HEAD(*list);
 
     qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler. qd_link_t:%p, list_size:%d", (void*)link, (int)DEQ_SIZE(*list));
-    for (qd_link_ref_t *dref = DEQ_HEAD(*list); dref; dref = DEQ_NEXT(dref)) {
-        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler. qd_link_t:%p, list:%p holds: qdr_delivery_t:%p", (void*)link, (void*)list, (void*)dref->ref);
-    }
+    qdr_dump_ref_list(list, "qd_link_abandoned_deliveries_handler entry      :");
 
     while (ref) {
         DEQ_REMOVE_HEAD(*list);
         qdr_delivery_t *dlv = (qdr_delivery_t*) ref->ref;
-        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler loop. link:%p, qdr_deliver_t:%p", (void*)link, (void*)dlv);
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qd_link_abandoned_deliveries_handler loop freeing. link:%p, qdr_delivery_t:%p", (void*)link, (void*)dlv);
         ref->ref = 0;
         qdr_delivery_set_context(dlv, 0);
         qdr_delivery_decref(router->router_core, dlv, "qd_link_abandoned_deliveries_handler");
