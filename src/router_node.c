@@ -55,28 +55,6 @@ static void deferred_AMQP_rx_handler(void *context, bool discard);
 // qdr_delivery.context => pn_delivery
 //
 
-void qdr_dump_ref_list(const qdr_link_ref_list_t *list, const char *title)
-{
-#define N_ENTRIES 100
-    void *entries[N_ENTRIES] = {0};
-    char obuf[N_ENTRIES * 22] = {0};
-    char *wptr = obuf;
-    // copy the entry pointers
-    int n_entries;
-    qd_link_ref_t *dref;
-    for (n_entries=0, dref=DEQ_HEAD(*list); (n_entries < N_ENTRIES) && dref; n_entries++, dref=DEQ_NEXT(dref)) {
-        entries[n_entries] = dref->ref;
-    }
-    // encode log line
-    wptr += snprintf(wptr, 100, "%s list at %p holds %d qdr_delivery_t* entries: [", title, (void*)list, n_entries);
-    for (int i=0; i<n_entries; i++) {
-        wptr += snprintf(wptr, 20, "%p ", entries[i]);
-    }
-    snprintf(wptr, 20, "]");
-    
-    qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "%s", obuf);
-}
-
 
 static void qdr_node_connect_deliveries(qd_link_t *link, qdr_delivery_t *qdlv, pn_delivery_t *pdlv)
 {
@@ -89,10 +67,13 @@ static void qdr_node_connect_deliveries(qd_link_t *link, qdr_delivery_t *qdlv, p
     pn_delivery_set_context(pdlv, ref);
     qdr_delivery_set_context(qdlv, pdlv);
     qdr_delivery_incref(qdlv, "referenced by a pn_delivery");
-    qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_connect_deliveries. qd_link_t:%p add delivery qdr_delivery_t:%p to list:%p", (void*)link, (void*)qdlv, (void*)list);
-    qdr_dump_ref_list(list, "qdr_node_connect_deliveries after connecting delivery:");
+    qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_connect_deliveries. Added one and now: qd_link_t:%p, qdr_delivery_t:%p list_size:%d list:%p holds:", (void*)link, (void*)qdlv, (int)DEQ_SIZE(*list), (void*)list);
+    for (qd_link_ref_t *dref = (qd_link_ref_t*) pn_delivery_get_context(pdlv); dref; dref = DEQ_NEXT(dref)) {
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_connect_deliveries. qd_link_t:%p, qdr_delivery_t:%p list:%p holds: qdr_delivery_t:%p", (void*)link, (void*)qdlv, (void*)list, (void*)dref->ref);
+    }
 
 }
+
 
 static void qdr_node_disconnect_deliveries(qdr_core_t *core, qd_link_t *link, qdr_delivery_t *qdlv, pn_delivery_t *pdlv)
 {
@@ -104,7 +85,9 @@ static void qdr_node_disconnect_deliveries(qdr_core_t *core, qd_link_t *link, qd
 
     qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_disconnect_deliveries. qd_link_t:%p, qdr_delivery_t:%p list_size:%d list:%p holds:", (void*)link, (void*)qdlv, (int)DEQ_SIZE(*list), (void*)list);
 
-    qdr_dump_ref_list(list, "qdr_node_disconnect_deliveries on entry:");
+    for (qd_link_ref_t *dref = (qd_link_ref_t*) pn_delivery_get_context(pdlv); dref; dref = DEQ_NEXT(dref)) {
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_disconnect_deliveries. qd_link_t:%p, qdr_delivery_t:%p list:%p holds: qdr_delivery_t:%p", (void*)link, (void*)qdlv, (void*)list, (void*)dref->ref);
+    }
 
     if (ref) {
         DEQ_REMOVE(*list, ref);
@@ -114,9 +97,8 @@ static void qdr_node_disconnect_deliveries(qdr_core_t *core, qd_link_t *link, qd
         qdr_delivery_set_context(qdlv, 0);
         qdr_delivery_decref(core, qdlv, "removed reference from pn_delivery");
     } else {
-        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_disconnect_deliveries list:%p pn_delivery %p had no qd_link_ref context", (void*)list, (void*)pdlv);
+        qd_log(qd_log_source("HACK-975"), QD_LOG_CRITICAL, "qdr_node_disconnect_deliveries DID NOT DISCONNECT ANY DELIVERY list_size:%d", (int)DEQ_SIZE(*list));
     }
-    qdr_dump_ref_list(list, "qdr_node_disconnect_deliveries on exit:");
 }
 
 
