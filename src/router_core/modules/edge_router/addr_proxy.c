@@ -211,6 +211,8 @@ static void del_outlink(qcm_edge_addr_proxy_t *ap, qdr_address_t *addr)
     if (link) {
         addr->edge_outlink = 0;
         qdr_core_unbind_address_link_CT(ap->core, addr, link);
+        const char *ar = (char*) qd_hash_key_by_handle(addr->hash_handle);
+        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "del_outlink ar: %s", ar);
         qdr_link_outbound_detach_CT(ap->core, link, 0, QDR_CONDITION_NONE, true);
     }
 }
@@ -434,6 +436,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         break;
 
     case QDRC_EVENT_ADDR_NO_LONGER_SOURCE :
+        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "addr_no_longer_source");
         del_outlink(ap, addr);
         break;
 
@@ -443,7 +446,12 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
 
     case QDRC_EVENT_ADDR_ONE_SOURCE :
         link_ref = DEQ_HEAD(addr->inlinks);
+        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref=%p", (void*)link_ref);
+        if (link_ref)
+            qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref->link->conn: %p, ap->edge_conn: %p",
+                   (void*)link_ref->link->conn, (void*)ap->edge_conn);
         if (!link_ref || link_ref->link->conn == ap->edge_conn)
+            qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "one_source");
             del_outlink(ap, addr);
         break;
 

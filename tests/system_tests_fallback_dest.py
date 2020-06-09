@@ -96,175 +96,175 @@ class RouterTest(TestCase):
         cls.ROUTER_EB2_WP = cls.routers[5].addresses[1]
 
 
-    def test_01_sender_first_primary_same_interior(self):
+    def xtest_01_sender_first_primary_same_interior(self):
         test = SenderFirstTest(self.ROUTER_INTA,
                                self.ROUTER_INTA,
                                'dest.01', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_02_sender_first_fallback_same_interior(self):
+    def xtest_02_sender_first_fallback_same_interior(self):
         test = SenderFirstTest(self.ROUTER_INTA,
                                self.ROUTER_INTA,
                                'dest.02', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_03_sender_first_primary_same_edge(self):
+    def xtest_03_sender_first_primary_same_edge(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_EA1,
                                'dest.03', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_04_sender_first_fallback_same_edge(self):
+    def xtest_04_sender_first_fallback_same_edge(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_EA1,
                                'dest.04', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_05_sender_first_primary_interior_interior(self):
+    def xtest_05_sender_first_primary_interior_interior(self):
         test = SenderFirstTest(self.ROUTER_INTA,
                                self.ROUTER_INTB,
                                'dest.05', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_06_sender_first_fallback_interior_interior(self):
+    def xtest_06_sender_first_fallback_interior_interior(self):
         test = SenderFirstTest(self.ROUTER_INTA,
                                self.ROUTER_INTB,
                                'dest.06', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_07_sender_first_primary_edge_interior(self):
+    def xtest_07_sender_first_primary_edge_interior(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_INTB,
                                'dest.07', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_08_sender_first_fallback_edge_interior(self):
+    def xtest_08_sender_first_fallback_edge_interior(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_INTB,
                                'dest.08', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_09_sender_first_primary_interior_edge(self):
+    def xtest_09_sender_first_primary_interior_edge(self):
         test = SenderFirstTest(self.ROUTER_INTB,
                                self.ROUTER_EA1,
                                'dest.09', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_10_sender_first_fallback_interior_edge(self):
+    def xtest_10_sender_first_fallback_interior_edge(self):
         test = SenderFirstTest(self.ROUTER_INTB,
                                self.ROUTER_EA1,
                                'dest.10', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_11_sender_first_primary_edge_edge(self):
+    def xtest_11_sender_first_primary_edge_edge(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_EB1,
                                'dest.11', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_12_sender_first_fallback_edge_edge(self):
+    def xtest_12_sender_first_fallback_edge_edge(self):
         test = SenderFirstTest(self.ROUTER_EA1,
                                self.ROUTER_EB1,
                                'dest.12', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_13_receiver_first_primary_same_interior(self):
+    def xtest_13_receiver_first_primary_same_interior(self):
         test = ReceiverFirstTest(self.ROUTER_INTA,
                                  self.ROUTER_INTA,
                                  'dest.13', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_14_receiver_first_fallback_same_interior(self):
+    def xtest_14_receiver_first_fallback_same_interior(self):
         test = ReceiverFirstTest(self.ROUTER_INTA,
                                  self.ROUTER_INTA,
                                  'dest.14', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_15_receiver_first_primary_same_edge(self):
+    def xtest_15_receiver_first_primary_same_edge(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_EA1,
                                  'dest.15', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_16_receiver_first_fallback_same_edge(self):
+    def xtest_16_receiver_first_fallback_same_edge(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_EA1,
                                  'dest.16', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_17_receiver_first_primary_interior_interior(self):
+    def xtest_17_receiver_first_primary_interior_interior(self):
         test = ReceiverFirstTest(self.ROUTER_INTA,
                                  self.ROUTER_INTB,
                                  'dest.17', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_18_receiver_first_fallback_interior_interior(self):
+    def xtest_18_receiver_first_fallback_interior_interior(self):
         test = ReceiverFirstTest(self.ROUTER_INTA,
                                  self.ROUTER_INTB,
                                  'dest.18', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_19_receiver_first_primary_edge_interior(self):
+    def xtest_19_receiver_first_primary_edge_interior(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_INTB,
                                  'dest.19', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_20_receiver_first_fallback_edge_interior(self):
+    def xtest_20_receiver_first_fallback_edge_interior(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_INTB,
                                  'dest.20', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_21_receiver_first_primary_interior_edge(self):
+    def xtest_21_receiver_first_primary_interior_edge(self):
         test = ReceiverFirstTest(self.ROUTER_INTB,
                                  self.ROUTER_EA1,
                                  'dest.21', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_22_receiver_first_fallback_interior_edge(self):
+    def xtest_22_receiver_first_fallback_interior_edge(self):
         test = ReceiverFirstTest(self.ROUTER_INTB,
                                  self.ROUTER_EA1,
                                  'dest.22', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_23_receiver_first_primary_edge_edge(self):
+    def xtest_23_receiver_first_primary_edge_edge(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_EB1,
                                  'dest.23', False)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_24_receiver_first_fallback_edge_edge(self):
+    def xtest_24_receiver_first_fallback_edge_edge(self):
         test = ReceiverFirstTest(self.ROUTER_EA1,
                                  self.ROUTER_EB1,
                                  'dest.24', True)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_25_switchover_same_edge(self):
+    def xtest_25_switchover_same_edge(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_EA1,
                               self.ROUTER_EA1,
@@ -272,7 +272,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_26_switchover_same_interior(self):
+    def xtest_26_switchover_same_interior(self):
         test = SwitchoverTest(self.ROUTER_INTA,
                               self.ROUTER_INTA,
                               self.ROUTER_INTA,
@@ -280,7 +280,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_27_switchover_local_edge_alt_remote_interior(self):
+    def xtest_27_switchover_local_edge_alt_remote_interior(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_INTA,
                               self.ROUTER_EA1,
@@ -288,7 +288,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_28_switchover_local_edge_alt_remote_edge(self):
+    def xtest_28_switchover_local_edge_alt_remote_edge(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_EB1,
                               self.ROUTER_EA1,
@@ -304,7 +304,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_30_switchover_local_interior_pri_remote_edge(self):
+    def xtest_30_switchover_local_interior_pri_remote_edge(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_EA1,
                               self.ROUTER_EB1,
@@ -312,7 +312,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_31_switchover_local_interior_alt_remote_interior(self):
+    def xtest_31_switchover_local_interior_alt_remote_interior(self):
         test = SwitchoverTest(self.ROUTER_INTB,
                               self.ROUTER_INTA,
                               self.ROUTER_INTB,
@@ -320,7 +320,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_32_switchover_local_interior_alt_remote_edge(self):
+    def xtest_32_switchover_local_interior_alt_remote_edge(self):
         test = SwitchoverTest(self.ROUTER_INTB,
                               self.ROUTER_EA2,
                               self.ROUTER_INTB,
@@ -328,7 +328,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_33_switchover_local_interior_pri_remote_interior(self):
+    def xtest_33_switchover_local_interior_pri_remote_interior(self):
         test = SwitchoverTest(self.ROUTER_INTB,
                               self.ROUTER_INTB,
                               self.ROUTER_INTA,
@@ -336,7 +336,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_34_switchover_local_interior_pri_remote_edge(self):
+    def xtest_34_switchover_local_interior_pri_remote_edge(self):
         test = SwitchoverTest(self.ROUTER_INTB,
                               self.ROUTER_INTB,
                               self.ROUTER_EB1,
@@ -344,7 +344,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_35_switchover_mix_1(self):
+    def xtest_35_switchover_mix_1(self):
         test = SwitchoverTest(self.ROUTER_INTA,
                               self.ROUTER_INTB,
                               self.ROUTER_EA1,
@@ -352,7 +352,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_36_switchover_mix_2(self):
+    def xtest_36_switchover_mix_2(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_INTB,
                               self.ROUTER_INTA,
@@ -360,7 +360,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_37_switchover_mix_3(self):
+    def xtest_37_switchover_mix_3(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_INTB,
                               self.ROUTER_EB1,
@@ -368,7 +368,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_38_switchover_mix_4(self):
+    def xtest_38_switchover_mix_4(self):
         test = SwitchoverTest(self.ROUTER_EA1,
                               self.ROUTER_EA2,
                               self.ROUTER_EB1,
@@ -376,73 +376,73 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_39_auto_link_sender_first_fallback_same_interior(self):
+    def xtest_39_auto_link_sender_first_fallback_same_interior(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_INTA,
                                        self.ROUTER_INTA_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_40_auto_link_sender_first_fallback_same_edge(self):
+    def xtest_40_auto_link_sender_first_fallback_same_edge(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_EA1,
                                        self.ROUTER_EA1_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_41_auto_link_sender_first_fallback_interior_interior(self):
+    def xtest_41_auto_link_sender_first_fallback_interior_interior(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_INTA,
                                        self.ROUTER_INTB_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_42_auto_link_sender_first_fallback_edge_interior(self):
+    def xtest_42_auto_link_sender_first_fallback_edge_interior(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_EA1,
                                        self.ROUTER_INTA_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_43_auto_link_sender_first_fallback_interior_edge(self):
+    def xtest_43_auto_link_sender_first_fallback_interior_edge(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_INTB,
                                        self.ROUTER_EA1_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_44_auto_link_sender_first_fallback_edge_edge(self):
+    def xtest_44_auto_link_sender_first_fallback_edge_edge(self):
         test = SenderFirstAutoLinkTest(self.ROUTER_EA1,
                                        self.ROUTER_EB1_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_45_auto_link_receiver_first_fallback_same_interior(self):
+    def xtest_45_auto_link_receiver_first_fallback_same_interior(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_INTA,
                                          self.ROUTER_INTA_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_46_auto_link_receiver_first_fallback_same_edge(self):
+    def xtest_46_auto_link_receiver_first_fallback_same_edge(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_EA1,
                                          self.ROUTER_EA1_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_47_auto_link_receiver_first_fallback_interior_interior(self):
+    def xtest_47_auto_link_receiver_first_fallback_interior_interior(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_INTA,
                                          self.ROUTER_INTB_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_48_auto_link_receiver_first_fallback_edge_interior(self):
+    def xtest_48_auto_link_receiver_first_fallback_edge_interior(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_EA1,
                                          self.ROUTER_INTB_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_49_auto_link_receiver_first_fallback_interior_edge(self):
+    def xtest_49_auto_link_receiver_first_fallback_interior_edge(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_INTB,
                                          self.ROUTER_EA1_WP)
         test.run()
         self.assertEqual(None, test.error)
 
-    def test_50_auto_link_receiver_first_fallback_edge_edge(self):
+    def xtest_50_auto_link_receiver_first_fallback_edge_edge(self):
         test = ReceiverFirstAutoLinkTest(self.ROUTER_EA1,
                                          self.ROUTER_EB1_WP)
         test.run()
@@ -572,7 +572,7 @@ class SwitchoverTest(MessagingHandler):
         self.primary_host   = primary_host
         self.fallback_host  = fallback_host
         self.addr           = addr
-        self.count          = 300
+        self.count          = 10
 
         self.sender_conn    = None
         self.primary_conn   = None
