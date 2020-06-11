@@ -909,3 +909,26 @@ void qdr_request_global_stats(qdr_core_t *core, qdr_global_stats_t *stats, qdr_g
     qdr_action_enqueue(core, action);
 }
 
+
+void qdr_dump_ref_list(qdr_link_ref_list_t *list, const char *title, const char *key, const char *subtitle)
+{
+#define N_ENTRIES 30
+    void *entries[N_ENTRIES];
+    char obuf[2000];
+    char *wptr = obuf;
+    // copy the entry pointers
+    int n_entries;
+    qdr_link_ref_t *dref;
+    for (n_entries=0, dref=DEQ_HEAD(*list); (n_entries < N_ENTRIES) && dref; n_entries++, dref=DEQ_NEXT(dref)) {
+        entries[n_entries] = dref->link;
+    }
+    // encode log line for dref->link, the actual pointers
+    wptr += snprintf(wptr, 200, "%s %s %s qdr_link_t* list:%p holds %d entries: [", title, key, subtitle, (void*)list, n_entries);
+    for (int i=0; i<n_entries; i++) {
+        wptr += snprintf(wptr, 30, "%p ", entries[i]);
+    }
+    snprintf(wptr, 20, "]");
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s", obuf);
+
+}
+

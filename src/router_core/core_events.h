@@ -158,6 +158,7 @@ qdrc_event_subscription_t *qdrc_event_subscribe_CT(qdr_core_t             *core,
  */
 void qdrc_event_unsubscribe_CT(qdr_core_t *core, qdrc_event_subscription_t *sub);
 
+const char * qdrc_event_name(qdrc_event_t event);
 
 //=====================================================================================
 // Private functions, not part of the API

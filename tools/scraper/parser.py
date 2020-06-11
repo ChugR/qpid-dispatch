@@ -383,6 +383,7 @@ class ParsedLogLine(object):
     router_ls_key = "ROUTER_LS (info)"
     transfer_key = "@transfer(20)"
     proton_frame_key = "FRAME: "
+    scraper_key = "SCRAPER ("
 
     def sender_settle_mode_of(self, value):
         if value == "0":
@@ -799,7 +800,8 @@ class ParsedLogLine(object):
                 ParsedLogLine.protocol_trace_key in _line or
                 (ParsedLogLine.policy_trace_key in _line and "lookup_user:" in _line) or  # open (not begin, attach)
                 ParsedLogLine.server_info_key in _line or
-                ParsedLogLine.router_ls_key in _line):
+                ParsedLogLine.router_ls_key in _line or
+                ParsedLogLine.scraper_key in _line):
             raise ValueError("Line is not a candidate for parsing")
         self.index = _log_index  # router prefix 0 for A, 1 for B
         self.instance = _instance  # router instance in log file
@@ -861,6 +863,14 @@ class ParsedLogLine(object):
             if self.comn.args.time_end is not None:
                 if self.datetime > self.comn.args.time_end:
                     raise ValueError("Line too late outside time-of-day limits")
+
+        # Pull out scraper literal logs
+        sti = self.line.find(self.scraper_key)
+        if sti > 0:
+            # strip datetime and show literal string
+            sti += len("SCRAPER")
+            self.data.web_show_str = ("<strong>SCRAPER</strong> %s" % common.html_escape(self.line[sti:]))
+            return
 
         # extract connection number
         sti = self.line.find(self.server_trace_key)
@@ -986,6 +996,7 @@ def parse_log_file(fn, log_index, comn):
     keys = [key1, key3]
     key4 = "ROUTER (info) Version:"  # router version line
     key5 = "ROUTER (info) Router started in " # router mode
+    key6 = "SCRAPER (" # verbatim log lines to copy to Log Data
     with open(fn, 'r') as infile:
         for line in infile:
             if search_for_in_progress:
@@ -1030,10 +1041,13 @@ def parse_log_file(fn, log_index, comn):
                 rtr.version = line[(line.find(key4) + len(key4)):].strip().split()[0]
             elif key5 in line:
                 rtr.mode = line[(line.find(key5) + len(key5)):].strip().split()[0].lower()
+            elif key6 in line:
+                pl = ParsedLogLine(log_index, instance, lineno, line, comn, rtr)
+                rtr.lines.append(pl)
             elif "[" in line and "]" in line:
                 try:
-                    if lineno == 130:
-                        pass
+                    #if lineno == 130:
+                    #    pass
                     do_this = True if not hasattr(comn.args, 'skip_all_data') else not comn.args.skip_all_data
                     if not do_this:
                         # not indexing data. maybe do this line anyway

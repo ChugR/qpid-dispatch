@@ -75,6 +75,8 @@ static qd_message_t *qdcm_edge_create_address_dlv(qdr_core_t *core, qdr_address_
     qd_compose_free(body);
     qd_compose_free(fld);
 
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking/qdcm_edge_create_address_dlv addr: %s, insert: %s",
+           addr_str, (insert_addr ? "true" : "false"));
     return msg;
 }
 

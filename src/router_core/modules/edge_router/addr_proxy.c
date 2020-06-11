@@ -212,7 +212,7 @@ static void del_outlink(qcm_edge_addr_proxy_t *ap, qdr_address_t *addr)
         addr->edge_outlink = 0;
         qdr_core_unbind_address_link_CT(ap->core, addr, link);
         const char *ar = (char*) qd_hash_key_by_handle(addr->hash_handle);
-        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "del_outlink ar: %s", ar);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "del_outlink ar: %s", ar);
         qdr_link_outbound_detach_CT(ap->core, link, 0, QDR_CONDITION_NONE, true);
     }
 }
@@ -382,6 +382,14 @@ static void on_conn_event(void *context, qdrc_event_t event, qdr_connection_t *c
 }
 
 
+void addr_event_state(const char *title, const char *key, qdrc_event_t event, qdr_address_t * addr)
+{
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "on_addr_event: %s for %s while processing %s. remoteConsumers:%d",
+           title, key, qdrc_event_name(event), qd_bitmask_cardinality(addr->rnodes));
+    qdr_dump_ref_list(&addr->rlinks,  title, key,  "rlinks Locally-Connected Consumers");
+    qdr_dump_ref_list(&addr->inlinks, title, key, "inlinks Locally-Connected Producers");
+}
+
 static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr)
 {
     qcm_edge_addr_proxy_t *ap = (qcm_edge_addr_proxy_t*) context;
@@ -400,6 +408,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
     if (*key != QD_ITER_HASH_PREFIX_MOBILE)
         return;
 
+    addr_event_state("on_addr_event ENTRY ", key, event, addr);
     switch (event) {
     case QDRC_EVENT_ADDR_BECAME_LOCAL_DEST :
         //
@@ -436,7 +445,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         break;
 
     case QDRC_EVENT_ADDR_NO_LONGER_SOURCE :
-        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "addr_no_longer_source");
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_no_longer_source");
         del_outlink(ap, addr);
         break;
 
@@ -446,12 +455,12 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
 
     case QDRC_EVENT_ADDR_ONE_SOURCE :
         link_ref = DEQ_HEAD(addr->inlinks);
-        qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref=%p", (void*)link_ref);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref=%p", (void*)link_ref);
         if (link_ref)
-            qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref->link->conn: %p, ap->edge_conn: %p",
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "ADDR_ONE_SOURCE link_ref->link->conn: %p, ap->edge_conn: %p",
                    (void*)link_ref->link->conn, (void*)ap->edge_conn);
         if (!link_ref || link_ref->link->conn == ap->edge_conn)
-            qd_log(qd_log_source("HACK"), QD_LOG_CRITICAL, "one_source");
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "one_source");
             del_outlink(ap, addr);
         break;
 
@@ -459,6 +468,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         assert(false);
         break;
     }
+    addr_event_state("on_addr_event EXIT ", key, event, addr);
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "====================================================");
 }
 
 

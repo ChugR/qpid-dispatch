@@ -138,6 +138,8 @@ class Router():
         :return:
         '''
         for item in self.lines:
+            if item.data.conn_num == '':
+                continue
             conn_num = int(item.data.conn_num)
             id = item.data.conn_id           # full name A0_3
             if conn_num not in self.conn_list:
