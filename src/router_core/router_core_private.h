@@ -1048,6 +1048,6 @@ void qdr_reset_sheaf(qdr_core_t *core, uint8_t n);
  */
 void qdr_record_link_credit(qdr_core_t *core, qdr_link_t *link);
 
-void qdr_dump_ref_list(qdr_link_ref_list_t *list, const char *title, const char *key, const char *subtitle);
+void qdr_dump_ref_list(qdr_address_t *addr, qdr_link_ref_list_t *list, const char *title, const char *key, const char *subtitle);
 
 #endif
