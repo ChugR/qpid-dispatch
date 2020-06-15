@@ -206,6 +206,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         return;
 
     qdr_addr_tracking_module_context_t *addr_tracking = (qdr_addr_tracking_module_context_t*) context;
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s",
+           qdrc_event_name(event));
     switch (event) {
         case QDRC_EVENT_ADDR_BECAME_LOCAL_DEST : {
             //
@@ -221,6 +223,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
                         qdr_addr_endpoint_state_t *endpoint_state = (qdr_addr_endpoint_state_t *)inlink->link->edge_context;
                         if (!endpoint_state->closed && qdrc_can_send_address(addr, endpoint_state->conn) ) {
                             qdrc_endpoint_t *endpoint = endpoint_state->endpoint;
+                            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s, inform inlink",
+                                    qdrc_event_name(event));
                             qdrc_send_message(addr_tracking->core, addr, endpoint, true);
                         }
                     }
@@ -242,8 +246,11 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
                     qdr_addr_endpoint_state_t *endpoint_state = (qdr_addr_endpoint_state_t *)inlink->link->edge_context;
                     if (!endpoint_state->closed && qdrc_can_send_address(addr, endpoint_state->conn) ) {
                         qdrc_endpoint_t *endpoint = endpoint_state->endpoint;
-                        if (endpoint)
+                        if (endpoint) {
+                            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s, inform link",
+                                    qdrc_event_name(event));
                             qdrc_send_message(addr_tracking->core, addr, endpoint, true);
+                        }
                     }
                 }
                 inlink = DEQ_NEXT(inlink);
@@ -264,8 +271,11 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
                         qdr_addr_endpoint_state_t *endpoint_state = (qdr_addr_endpoint_state_t *)inlink->link->edge_context;
                         if(!endpoint_state->closed) {
                             qdrc_endpoint_t *endpoint = endpoint_state->endpoint;
-                            if (endpoint)
+                            if (endpoint) {
+                                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s, inform link",
+                                        qdrc_event_name(event));
                                 qdrc_send_message(addr_tracking->core, addr, endpoint, false);
+                            }
                         }
                     }
                     inlink = DEQ_NEXT(inlink);
@@ -292,6 +302,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
                     qdr_addr_endpoint_state_t *endpoint_state = (qdr_addr_endpoint_state_t *)inlink->link->edge_context;
                     qdrc_endpoint_t *endpoint = endpoint_state->endpoint;
                     if (endpoint_state->conn == link->conn && !endpoint_state->closed) {
+                        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s, inform link",
+                                qdrc_event_name(event));
                         qdrc_send_message(addr_tracking->core, addr, endpoint, false);
                         break;
                     }
@@ -313,6 +325,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
                     qdr_addr_endpoint_state_t *endpoint_state = (qdr_addr_endpoint_state_t *)inlink->link->edge_context;
                     qdrc_endpoint_t *endpoint = endpoint_state->endpoint;
                     if (link->conn == endpoint_state->conn && !endpoint_state->closed) {
+                        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event process event: %s, inform link",
+                                qdrc_event_name(event));
                         qdrc_send_message(addr_tracking->core, addr, endpoint, true);
                         break;
                     }
@@ -329,6 +343,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
 
 static void on_link_event(void *context, qdrc_event_t event, qdr_link_t *link)
 {
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_link_event process event: %s",
+           qdrc_event_name(event));
     switch (event) {
         case QDRC_EVENT_LINK_EDGE_DATA_ATTACHED :
         {

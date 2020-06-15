@@ -398,7 +398,7 @@ static void on_conn_event(void *context, qdrc_event_t event, qdr_connection_t *c
 }
 
 
-void addr_event_state(const char *title, const char *key, qdrc_event_t event, qdr_address_t * addr)
+void DEBUG_addr_event_state(const char *title, const char *key, qdrc_event_t event, qdr_address_t * addr)
 {
     qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s for %s while processing %s for addr=%p",
            title, key, qdrc_event_name(event), (void*)addr);
@@ -424,7 +424,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
     if (*key != QD_ITER_HASH_PREFIX_MOBILE)
         return;
 
-    addr_event_state("on_addr_event ENTRY ", key, event, addr);
+    DEBUG_addr_event_state("on_addr_event ENTRY ", key, event, addr);
     switch (event) {
     case QDRC_EVENT_ADDR_BECAME_LOCAL_DEST :
         //
@@ -492,7 +492,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         assert(false);
         break;
     }
-    addr_event_state("on_addr_event EXIT ", key, event, addr);
+    DEBUG_addr_event_state("on_addr_event EXIT ", key, event, addr);
     qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "====================================================");
 }
 
