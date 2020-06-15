@@ -755,12 +755,13 @@ class ParsedLogLine(object):
                 self.highlighted("resume", res.transfer_resume, common.color_of("aborted")),
                 self.highlighted("aborted", res.transfer_aborted, common.color_of("aborted")),
                 showdat, res.transfer_size)
-            res.sdorg_str = "%s %s (%s) %s %s%s%s%s" % (
+            res.sdorg_str = "%s %s (%s) %s (%s%s%s%s) \\n%s" % (
                 res.name, res.channel_handle, res.delivery_id, res.transfer_size,
                 self.unhighlighted(" settled", res.transfer_settled),
                 self.unhighlighted(" more", res.transfer_more),
                 self.unhighlighted(" resume", res.transfer_resume),
-                self.unhighlighted(" aborted", res.transfer_aborted))
+                self.unhighlighted(" aborted", res.transfer_aborted),
+                common.strings_of_proton_log(res.transfer_bare)[-50:])
 
     def adverbl_link_to(self):
         """
