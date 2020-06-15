@@ -145,6 +145,7 @@ class LogLineData:
         self.is_policy_trace = False  # line is POLICY (trace)
         self.is_server_info = False  # line is SERVER (info)
         self.is_router_ls = False  # line is ROUTER_LS (info)
+        self.is_scraper = False
         self.fid = ""  # Log line (frame) id as used in javascript code
         self.amqp_error = False
         self.link_class = "client"  # attach sees: normal, router, router-data (, management?)
@@ -869,7 +870,14 @@ class ParsedLogLine(object):
         if sti > 0:
             # strip datetime and show literal string
             sti += len("SCRAPER")
+            self.data.is_scraper = True
             self.data.web_show_str = ("<strong>SCRAPER</strong> %s" % common.html_escape(self.line[sti:]))
+            stcp = self.line[sti:].find(')') # close paren after log level
+            #import pdb
+            #pdb.set_trace()
+            if stcp <= 0:
+                stcp = 0
+            self.data.sdorg_str = self.line[sti + stcp + 1:]
             return
 
         # extract connection number
