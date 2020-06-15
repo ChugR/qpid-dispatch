@@ -336,7 +336,7 @@ class RouterTest(TestCase):
         test.run()
         self.assertEqual(None, test.error)
 
-    def xtest_34_switchover_local_interior_pri_remote_edge(self):
+    def test_34_switchover_local_interior_pri_remote_edge(self):
         test = SwitchoverTest(self.ROUTER_INTB,
                               self.ROUTER_INTB,
                               self.ROUTER_EB1,

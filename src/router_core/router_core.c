@@ -923,7 +923,7 @@ void qdr_dump_ref_list(qdr_address_t *addr, qdr_link_ref_list_t *list, const cha
         entries[n_entries] = dref->link;
     }
     // encode log line for dref->link, the actual pointers
-    wptr += snprintf(wptr, 200, "    %s %s %s == addr:%p, list:%p holds %d entries: [", title, key, subtitle, (void*)addr, (void*)list, n_entries);
+    wptr += snprintf(wptr, 200, "    %s %s %s \\n addr@%p, list:%p holds %d entries: [", title, key, subtitle, (void*)addr, (void*)list, n_entries);
     for (int i=0; i<n_entries; i++) {
         wptr += snprintf(wptr, 30, "%p ", entries[i]);
     }

@@ -400,10 +400,10 @@ static void on_conn_event(void *context, qdrc_event_t event, qdr_connection_t *c
 
 void DEBUG_addr_event_state(const char *title, const char *key, qdrc_event_t event, qdr_address_t * addr)
 {
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s for %s while processing %s for addr=%p",
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s for %s, addr@%p",
            title, key, qdrc_event_name(event), (void*)addr);
-    qdr_dump_ref_list(addr, &addr->rlinks,  title, key, " rlinks (Locally-Connected Consumers)");
-    qdr_dump_ref_list(addr, &addr->inlinks, title, key, "inlinks (Locally-Connected Producers)");
+    qdr_dump_ref_list(addr, &addr->rlinks,  title, key, " rlinks local consumers");
+    qdr_dump_ref_list(addr, &addr->inlinks, title, key, "inlinks local producers)");
 }
 
 static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr)
@@ -493,7 +493,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         break;
     }
     DEBUG_addr_event_state("on_addr_event EXIT ", key, event, addr);
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "====================================================");
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "===== end of event =====");
 }
 
 
