@@ -947,10 +947,10 @@ def main_except(argv):
             if (not plf.data.sdorg_str == "" and
                 not plf.data.direction == "" and
                 not plf.data.sdorg_str.startswith("HELP")):
-                print("%s|%s|%s|%s|%s|%s" % (plf.datetime, rid, plf.data.direction, peer, plf.data.sdorg_str, ("%s#%d" % (plf.prefixi, plf.lineno))))
+                print("%s|%s|%s|%s|%s|%s|<br>" % (plf.datetime, rid, plf.data.direction, peer, plf.data.sdorg_str, ("%s#%d" % (plf.prefixi, plf.lineno))))
             else:
                 if plf.data.is_scraper:
-                    print("%s|%s|%s|%s|%s|%s" % (plf.datetime, rid, "->", rid, plf.data.sdorg_str,
+                    print("%s|%s|%s|%s|%s|%s|<br>" % (plf.datetime, rid, "->", rid, plf.data.sdorg_str,
                                                  ("%s#%d" % (plf.prefixi, plf.lineno))))
             #import pdb
             #pdb.set_trace()
