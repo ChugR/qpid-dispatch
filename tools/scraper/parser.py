@@ -34,6 +34,11 @@ import common
 import text
 import router
 
+"""
+Sequence output copies the tailing end of transfers to a second display line.
+Define how many characters to show.
+"""
+SEQUENCE_TRANSFER_SIZE = 50
 
 def colorize_bg(what):
     # TODO: use the real colorize_bg
@@ -761,7 +766,7 @@ class ParsedLogLine(object):
                 self.unhighlighted(" more", res.transfer_more),
                 self.unhighlighted(" resume", res.transfer_resume),
                 self.unhighlighted(" aborted", res.transfer_aborted),
-                common.strings_of_proton_log(res.transfer_bare)[-50:])
+                common.strings_of_proton_log(res.transfer_bare)[-SEQUENCE_TRANSFER_SIZE:])
 
     def adverbl_link_to(self):
         """
