@@ -144,7 +144,7 @@ static void add_inlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_t
         const char     *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
 
         if (key[1] == QD_ITER_HASH_PHASE_FALLBACK) {
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_inlink fallback. addr=%p, key=%s", (void*)addr, key);
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_inlink %s \\n set_fallback_capability", key);
             set_fallback_capability(term);
 
         } else if (addr->config && addr->config->out_phase > 0) {
@@ -153,8 +153,8 @@ static void add_inlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_t
             // add waypoint capabilities to the terminus.
             //
             if (key[0] == QD_ITER_HASH_PREFIX_MOBILE) {
-                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_inlink waypoint INCOMING. addr=%p, key=%s, in_phase:%d, out_phase:%d",
-                       (void*)addr, key, addr->config->in_phase, addr->config->out_phase);
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_inlink %s \\n waypoint INCOMING.",
+                       key);
                 set_waypoint_capability(term, key[1], QD_INCOMING, addr->config->in_phase, addr->config->out_phase);
             }
         }
@@ -163,7 +163,7 @@ static void add_inlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_t
                                               term, qdr_terminus_normal(0), QD_SSN_ENDPOINT);
         qdr_core_bind_address_link_CT(ap->core, addr, link);
         addr->edge_inlink = link;
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_inlink bind_address_link set addr->edge_inlink. addr=%p, link=%p key=%s", (void*)addr, (void*)link, key);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_inlink %s \\n bind_address_link addr->edge_inlink. addr=%p, link=%p", key, (void*)addr, (void*)link);
     }
 }
 
@@ -173,12 +173,12 @@ static void del_inlink(qcm_edge_addr_proxy_t *ap, qdr_address_t *addr)
     qdr_link_t *link = addr->edge_inlink;
     if (link) {
         const char     *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/del_inlink unbind_address_link clear addr->edge_inlink. addr=%p, link=%p key=%s", (void*)addr, (void*)link, key);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/del_inlink %s \\n unbind_address_link clear addr->edge_inlink. addr=%p, link=%p", key, (void*)addr, (void*)link);
         addr->edge_inlink = 0;
         qdr_core_unbind_address_link_CT(ap->core, addr, link);
         qdr_link_outbound_detach_CT(ap->core, link, 0, QDR_CONDITION_NONE, true);
     } else {
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/del_inlink addr->edge_inlink is absent NOOP");
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/del_inlink \\n addr->edge_inlink is absent NOOP");
     }
 }
 
@@ -195,7 +195,7 @@ static void add_outlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_
         const char     *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
 
         if (key[1] == QD_ITER_HASH_PHASE_FALLBACK) {
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_outlink fallback. addr=%p, key=%s", (void*)addr, key);
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_outlink %s \\n set_fallback_capability addr=%p", key, (void*)addr);
             set_fallback_capability(term);
 
         } else if (addr->config && addr->config->out_phase > 0) {
@@ -205,8 +205,8 @@ static void add_outlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_
             //
             const char *key = (char*) qd_hash_key_by_handle(addr->hash_handle);
             if (key[0] == QD_ITER_HASH_PREFIX_MOBILE) {
-                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_outlink waypoint OUTGOING. addr=%p, key=%s, in_phase:%d, out_phase:%d",
-                       (void*)addr, key, addr->config->in_phase, addr->config->out_phase);
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_outlink %s \\n waypoint OUTGOING. addr=%p in_phase:%d, out_phase:%d",
+                       key, (void*)addr, addr->config->in_phase, addr->config->out_phase);
                 set_waypoint_capability(term, key[1], QD_OUTGOING, addr->config->in_phase, addr->config->out_phase);
             }
         }
@@ -214,7 +214,7 @@ static void add_outlink(qcm_edge_addr_proxy_t *ap, const char *key, qdr_address_
         qdr_link_t *link = qdr_create_link_CT(ap->core, ap->edge_conn, QD_LINK_ENDPOINT, QD_OUTGOING,
                                               qdr_terminus_normal(0), term, QD_SSN_ENDPOINT);
         addr->edge_outlink = link;
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/add_outlink set addr->edge_outlink. addr=%p, link=%p key=%s", (void*)addr, (void*)link, key);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/add_outlink %s \\n set addr->edge_outlink. addr=%p, link=%p", key, (void*)addr, (void*)link);
     }
 }
 
@@ -224,12 +224,12 @@ static void del_outlink(qcm_edge_addr_proxy_t *ap, qdr_address_t *addr)
     qdr_link_t *link = addr->edge_outlink;
     if (link) {
         const char     *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/del_outlink unbind_address_link clear addr->edge_inlink. addr=%p, link=%p key=%s", (void*)addr, (void*)link, key);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/del_outlink %s \\n unbind_address_link clear addr->edge_outlink. addr=%p, link=%p", key, (void*)addr, (void*)link);
         addr->edge_outlink = 0;
         qdr_core_unbind_address_link_CT(ap->core, addr, link);
         qdr_link_outbound_detach_CT(ap->core, link, 0, QDR_CONDITION_NONE, true);
     } else {
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "  addr_proxy/del_outlink addr->edge_outlink is absent NOOP");
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/del_outlink NO KEY \\n addr->edge_outlink is absent NOOP");
     }
 }
 
@@ -253,6 +253,9 @@ static void on_link_event(void *context, qdrc_event_t event, qdr_link_t *link)
                 // set the edge_outlink on the address to be zero. We do this because this link is going to be freed
                 // and we don't want anyone dereferencing the addr->edge_outlink
                 //
+                const char *key = (const char*) qd_hash_key_by_handle(addr->hash_handle);
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL,
+                       "addr_proxy/on_link_event %s %s \\n nullify edge_outlink", key, qdrc_event_name(event));
                 addr->edge_outlink = 0;
             }
             break;
@@ -266,6 +269,9 @@ static void on_link_event(void *context, qdrc_event_t event, qdr_link_t *link)
                 // set the edge_inlink on the address to be zero. We do this because this link is going to be freed
                 // and we don't want anyone dereferencing the addr->edge_inlink
                 //
+                const char *key = (const char*) qd_hash_key_by_handle(addr->hash_handle);
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL,
+                       "addr_proxy/on_link_event %s %s \\n nullify edge_link", key, qdrc_event_name(event));
                 addr->edge_inlink = 0;
             }
             break;
@@ -400,10 +406,13 @@ static void on_conn_event(void *context, qdrc_event_t event, qdr_connection_t *c
 
 void DEBUG_addr_event_state(const char *title, const char *key, qdrc_event_t event, qdr_address_t * addr)
 {
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s for %s, addr@%p",
-           title, key, qdrc_event_name(event), (void*)addr);
-    qdr_dump_ref_list(addr, &addr->rlinks,  title, key, " rlinks local consumers");
-    qdr_dump_ref_list(addr, &addr->inlinks, title, key, "inlinks local producers)");
+#define DBUFSZ 100
+    char buffer[DBUFSZ];
+    qdr_addr_facts_debug(addr, buffer, (size_t)DBUFSZ);
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s %s %s\\naddr@%p %s",
+           title, key, qdrc_event_name(event), (void*)addr, buffer);
+    //qdr_dump_ref_list(addr, &addr->rlinks,  title, key, qdrc_event_name(event), "2/3 rlinks local consumers");
+    //qdr_dump_ref_list(addr, &addr->inlinks, title, key, qdrc_event_name(event), "3/3 inlinks local producers)");
 }
 
 static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr)
@@ -435,7 +444,7 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         if (link_ref->link->conn != ap->edge_conn)
             add_inlink(ap, key, addr);
         else
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event link_ref->link->conn(%p) is not ap->edge_conn(%p)",(void*)(link_ref->link->conn), (void*)(ap->edge_conn));
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event %s %s \\n link_ref->link->conn(%p) is not ap->edge_conn(%p)", qdrc_event_name(event), key, (void*)(link_ref->link->conn), (void*)(ap->edge_conn));
         break;
 
     case QDRC_EVENT_ADDR_NO_LONGER_LOCAL_DEST :
@@ -451,7 +460,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         if (link_ref->link->conn == ap->edge_conn)
             del_inlink(ap, addr);
         else
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event link_ref->link->conn(%p) is not ap->edge_conn(%p)",(void*)(link_ref->link->conn), (void*)(ap->edge_conn));
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event %s %s \\m link_ref->link->conn(%p) is not ap->edge_conn(%p)",
+                   qdrc_event_name(event), key, (void*)(link_ref->link->conn), (void*)(ap->edge_conn));
         break;
 
     case QDRC_EVENT_ADDR_TWO_DEST :
@@ -463,7 +473,8 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         if (!link_ref || link_ref->link->conn != ap->edge_conn)
             add_outlink(ap, key, addr);
         else
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event add_outlink() skipped");
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event %s %s \\n add_outlink() skipped",
+                   qdrc_event_name(event), key);
         break;
 
     case QDRC_EVENT_ADDR_NO_LONGER_SOURCE :
@@ -476,16 +487,14 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
 
     case QDRC_EVENT_ADDR_ONE_SOURCE :
         link_ref = DEQ_HEAD(addr->inlinks);
-        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "link_ref=%p", (void*)link_ref);
-        if (link_ref)
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "link_ref->link->conn: %p, ap->edge_conn: %p",
-                   (void*)link_ref->link->conn, (void*)ap->edge_conn);
         if (!link_ref || link_ref->link->conn == ap->edge_conn) {
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDRC_EVENT_ADDR_ONE_SOURCE deletes outlink");
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event %s %s \\n deletes outlink",
+                   qdrc_event_name(event), key);
             del_outlink(ap, addr);
         }
         else
-            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event add_outlink() skipped");
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "addr_proxy/on_addr_event %s %s \\n del_outlink() skipped",
+                   qdrc_event_name(event), key);
         break;
 
     default:
@@ -493,7 +502,6 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         break;
     }
     DEBUG_addr_event_state("on_addr_event EXIT ", key, event, addr);
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "===== end of event =====");
 }
 
 

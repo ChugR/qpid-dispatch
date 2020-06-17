@@ -567,22 +567,49 @@ void qdr_core_bind_address_link_CT(qdr_core_t *core, qdr_address_t *addr, qdr_li
         link->phase = (int) (key[1] - '0');
 
     if (link->link_direction == QD_OUTGOING) {
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+            "OUTGOING\\nadd_link_ref",
+            key);
         qdr_add_link_ref(&addr->rlinks, link, QDR_LINK_LIST_CLASS_ADDRESS);
         if (DEQ_SIZE(addr->rlinks) == 1) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                "OUTGOING\\naddr_start_inlinks, raise QDRC_EVENT_ADDR_BECAME_LOCAL_DEST",
+                key);
             qdr_addr_start_inlinks_CT(core, addr);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_BECAME_LOCAL_DEST, addr);
-        } else if (DEQ_SIZE(addr->rlinks) == 2 && qd_bitmask_cardinality(addr->rnodes) == 0)
+        } else if (DEQ_SIZE(addr->rlinks) == 2 && qd_bitmask_cardinality(addr->rnodes) == 0) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                "OUTGOING\\nraise QDRC_EVENT_ADDR_TWO_DEST",
+                key);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_TWO_DEST, addr);
+        }
     } else {  // link->link_direction == QD_INCOMING
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+            "INCOMING\\nadd_link_ref",
+            key);
         qdr_add_link_ref(&addr->inlinks, link, QDR_LINK_LIST_CLASS_ADDRESS);
         if (DEQ_SIZE(addr->inlinks) == 1) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                "INCOMING\\nraise QDRC_EVENT_ADDR_BECAME_SOURCE (for address)",
+                key);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_BECAME_SOURCE, addr);
-            if (!!addr->fallback && !link->fallback)
+            if (!!addr->fallback && !link->fallback) {
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                    "INCOMING\\nraise QDRC_EVENT_ADDR_BECAME_SOURCE (for fallback)",
+                    key);
                 qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_BECAME_SOURCE, addr->fallback);
+            }
         } else if (DEQ_SIZE(addr->inlinks) == 2) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                "INCOMING\\nraise QDRC_EVENT_ADDR_TWO_SOURCE (for address)",
+                key);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_TWO_SOURCE, addr);
-            if (!!addr->fallback && !link->fallback)
+            if (!!addr->fallback && !link->fallback) {
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_BIND_address_link_CT %s "
+                    "INCOMING\\nraise QDRC_EVENT_ADDR_TWO_SOURCE (for fallback)",
+                    key);
                 qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_TWO_SOURCE, addr->fallback);
+            }
         }
     }
 }
@@ -591,27 +618,52 @@ void qdr_core_bind_address_link_CT(qdr_core_t *core, qdr_address_t *addr, qdr_li
 void qdr_core_unbind_address_link_CT(qdr_core_t *core, qdr_address_t *addr, qdr_link_t *link)
 {
     link->owning_addr = 0;
-
+    const char *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
     if (link->link_direction == QD_OUTGOING) {
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+            "OUTGOING\\ndel_link_ref",
+            key);
         qdr_del_link_ref(&addr->rlinks, link, QDR_LINK_LIST_CLASS_ADDRESS);
         if (DEQ_SIZE(addr->rlinks) == 0) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                "OUTGOING\\nraise QDRC_EVENT_ADDR_NO_LONGER_LOCAL_DEST",
+                key);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_NO_LONGER_LOCAL_DEST, addr);
-        } else if (DEQ_SIZE(addr->rlinks) == 1 && qd_bitmask_cardinality(addr->rnodes) == 0)
+        } else if (DEQ_SIZE(addr->rlinks) == 1 && qd_bitmask_cardinality(addr->rnodes) == 0) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                "OUTGOING\\nraise QDRC_EVENT_ADDR_ONE_LOCAL_DEST",
+                key);
             qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_ONE_LOCAL_DEST, addr);
+        }
     } else {
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+            "INCOMING\\ndel_link_ref",
+            key);
         bool removed = qdr_del_link_ref(&addr->inlinks, link, QDR_LINK_LIST_CLASS_ADDRESS);
         if (removed) {
             if (DEQ_SIZE(addr->inlinks) == 0) {
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                    "INCOMING\\nraise QDRC_EVENT_ADDR_NO_LONGER_SOURCE (on address)",
+                    key);
                 qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_NO_LONGER_SOURCE, addr);
-                if (!!addr->fallback && !link->fallback)
+                if (!!addr->fallback && !link->fallback) {
+                    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                        "INCOMING\\nraise QDRC_EVENT_ADDR_NO_LONGER_SOURCE (on fallback)",
+                        key);
                     qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_NO_LONGER_SOURCE, addr->fallback);
+                }
             } else if (DEQ_SIZE(addr->inlinks) == 1) {
                 //assert(false);
+                qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                    "INCOMING\\nraise QDRC_EVENT_ADDR_ONE_SOURCE (on address)",
+                    key);
                 qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_ONE_SOURCE, addr);
                 if (!!addr->fallback && !link->fallback) {
+                    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "QDR_CORE_UNBIND_address_link_CT %s "
+                        "INCOMING\\nraise QDRC_EVENT_ADDR_ONE_SOURCE (on fallback)",
+                        key);
                     qdrc_event_addr_raise(core, QDRC_EVENT_ADDR_ONE_SOURCE, addr->fallback);
                 }
-
             }
         }
     }
@@ -910,7 +962,7 @@ void qdr_request_global_stats(qdr_core_t *core, qdr_global_stats_t *stats, qdr_g
 }
 
 
-void qdr_dump_ref_list(qdr_address_t *addr, qdr_link_ref_list_t *list, const char *title, const char *key, const char *subtitle)
+void qdr_dump_ref_list(qdr_address_t *addr, qdr_link_ref_list_t *list, const char *title, const char *key, const char *ev, const char *subtitle)
 {
 #define N_ENTRIES 30
     void *entries[N_ENTRIES];
@@ -923,12 +975,17 @@ void qdr_dump_ref_list(qdr_address_t *addr, qdr_link_ref_list_t *list, const cha
         entries[n_entries] = dref->link;
     }
     // encode log line for dref->link, the actual pointers
-    wptr += snprintf(wptr, 200, "    %s %s %s \\n addr@%p, list:%p holds %d entries: [", title, key, subtitle, (void*)addr, (void*)list, n_entries);
+    wptr += snprintf(wptr, 200, "    %s %s %s %s \\n addr@%p, list:%p holds %d entries: [", title, key, ev, subtitle, (void*)addr, (void*)list, n_entries);
     for (int i=0; i<n_entries; i++) {
         wptr += snprintf(wptr, 30, "%p ", entries[i]);
     }
     snprintf(wptr, 20, "]");
     qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "%s", obuf);
-
 }
 
+
+// Return list sizes for log file
+void qdr_addr_facts_debug(qdr_address_t *addr, char *buffer, size_t buflen)
+{
+    snprintf(buffer, buflen, "rlinks: %zu, inlinks: %zu", DEQ_SIZE(addr->rlinks), DEQ_SIZE(addr->inlinks));
+}

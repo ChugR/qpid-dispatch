@@ -206,8 +206,9 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
         return;
 
     qdr_addr_tracking_module_context_t *addr_tracking = (qdr_addr_tracking_module_context_t*) context;
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event event: %s",
-           qdrc_event_name(event));
+    const char *key  = (char*) qd_hash_key_by_handle(addr->hash_handle);
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_addr_event event: %s %s",
+           key, qdrc_event_name(event));
     switch (event) {
         case QDRC_EVENT_ADDR_BECAME_LOCAL_DEST : {
             //
@@ -343,8 +344,15 @@ static void on_addr_event(void *context, qdrc_event_t event, qdr_address_t *addr
 
 static void on_link_event(void *context, qdrc_event_t event, qdr_link_t *link)
 {
-    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_link_event event: %s",
-           qdrc_event_name(event));
+    qdr_address_t *addr0 = link->owning_addr;
+    if (addr0) {
+        const char     *key  = (char*) qd_hash_key_by_handle(addr0->hash_handle);
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_link_event event: %s %s",
+            key, qdrc_event_name(event));
+    } else {
+        qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "edge_addr_tracking.c/on_link_event event: (NO OWNING ADDR) %s",
+            qdrc_event_name(event));
+    }
     switch (event) {
         case QDRC_EVENT_LINK_EDGE_DATA_ATTACHED :
         {
