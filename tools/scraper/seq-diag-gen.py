@@ -100,6 +100,10 @@ class log_record:
             else:
                 print("space %d" % MAGIC_SPACE_NUMBER)
 
+    def sender_receiver(self):
+        # Return sender receiver
+        return self.sentby, self.rcvdby
+
     def diag_dump(self):
         cmn = ("index: %d, dateandtime: %s, sentby: %s, rcvdby: %s, performative: %s, router_line: %s" %
                (self.dateandtime, self.index, self.sentby, self.rcvdby, self.performative, self.router_line))
@@ -139,7 +143,7 @@ def match_logline_pairs(log_recs):
 
 if __name__ == "__main__":
     parser = optparse.OptionParser(usage="%prog [options]",
-                                   description="cooks a scraper log snippet into sequencediagram.org source")
+                                   description="cooks a scraper log snippet into sequence diagram source")
     parser.add_option("-f", "--filename", action="append", help="logfile to use or - for stdin")
     parser.add_option('--timestamp', '-t',
                       action='store_true',
@@ -160,6 +164,21 @@ if __name__ == "__main__":
                     log_recs.append( log_record(index, logline) )
                     index += 1
             match_logline_pairs(log_recs)
+
+            # print senders and receivers marking as actor or participant
+            names = set()
+            for log_rec in log_recs:
+                sndr, rcvr = log_rec.sender_receiver()
+                if sndr is not None:
+                    names.add(sndr)
+                if rcvr is not None:
+                    names.add(rcvr)
+            for name in names:
+                if name.startswith("peer"):
+                    print("actor %s" % name)
+                else:
+                    print("participant %s" % name)
+            print()
 
             # process the list of records
             for log_rec in log_recs:

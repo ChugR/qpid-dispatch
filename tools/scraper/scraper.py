@@ -929,7 +929,8 @@ def main_except(argv):
 
     # Emit data for source to be processed by seq-diag-gen utility
     if comn.args.sequence:
-        print("<h3>sequencediagram.org data</h3>")
+        print("<a name=\"c_sequence\"></a>")
+        print("<h3>sequence diagram data</h3>")
         for plf in tree:
             rtr = plf.router
             rid = comn.router_display_names[rtr.log_index]
