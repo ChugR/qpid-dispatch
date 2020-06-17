@@ -120,8 +120,13 @@ def split_log_file(filename):
     :param filename:
     :return:
     '''
-    with open(logfile, 'r') as log:
+    if filename == "STDIN" or filename == "" or filename == "-":
+        log = sys.stdin
         log_lines = log.read().split("\n")
+    else:
+        log = open(filename, 'r')
+        log_lines = log.read().split("\n")
+        log.close()
     return log_lines
 
 
