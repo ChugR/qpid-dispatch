@@ -1045,6 +1045,9 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e, pn_connection_t *pn_co
 
 static void *thread_run(void *arg)
 {
+    sys_thread_t *mythread = sys_thread_self();
+    qd_log(qd_log_source("SERVER"), QD_LOG_INFO, "Starting thread %p", (void*)mythread);
+
     qd_server_t      *qd_server = (qd_server_t*)arg;
     bool running = true;
     while (running) {

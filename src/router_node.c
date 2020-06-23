@@ -2029,6 +2029,6 @@ void qd_connection_log_policy_denial(qd_link_t *link, const char *text)
             c_id = rlink->conn->identity;
         }
     }    
-    qd_log(qd_policy_log_source(), QD_LOG_WARNING, "[C%"PRIu64"][L%"PRIu64"] %s",
-           c_id, l_id, text);
+    qd_log(qd_policy_log_source(), QD_LOG_WARNING, "[C%"PRIu64"][L%"PRIu64"] [thread %p] %s",
+           c_id, l_id, sys_thread_self(), text);
 }
