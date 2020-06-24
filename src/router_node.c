@@ -343,6 +343,8 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
     //
     // Receive the message into a local representation.
     //
+    qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "AMQP_rx_handler calls message_receive. pn_conn:%p, pn_link:%p, pn_delivery:%p",
+        qd_connection_pn(conn), pn_link, pnd);
     qd_message_t   *msg   = qd_message_receive(pnd);
     bool receive_complete = qd_message_receive_complete(msg);
 
@@ -402,6 +404,8 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
     } else {
         // message is oversize
         if (receive_complete) {
+            qd_log(qd_log_source("SCRAPER"), QD_LOG_CRITICAL, "AMQP_rx_handler oversize process. pn_conn:%p, pn_link:%p, pn_delivery:%p",
+                qd_connection_pn(conn), pn_link, pnd);
             // set condition, reject, and settle the incoming delivery
             pn_condition_t *lcond = pn_disposition_condition(pn_delivery_local(pnd));
             (void) pn_condition_set_name(       lcond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
