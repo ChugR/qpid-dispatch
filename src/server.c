@@ -1045,9 +1045,6 @@ static bool handle(qd_server_t *qd_server, pn_event_t *e, pn_connection_t *pn_co
 
 static void *thread_run(void *arg)
 {
-    sys_thread_t *mythread = sys_thread_self();
-    qd_log(qd_log_source("SERVER"), QD_LOG_CRITICAL, "Starting thread %p", (void*)mythread);
-
     qd_server_t      *qd_server = (qd_server_t*)arg;
     bool running = true;
     while (running) {
@@ -1055,18 +1052,18 @@ static void *thread_run(void *arg)
         pn_event_t * e;
         qd_connection_t *qd_conn = 0;
         pn_connection_t *pn_conn = 0;
-        bool logged = false;
-        pn_connection_t *conn;
-        pn_connection_t *orig_conn;
+//        bool logged = false;
+//        pn_connection_t *conn;
+//        pn_connection_t *orig_conn;
 
         while (running && (e = pn_event_batch_next(events))) {
             conn = pn_event_connection(e);
-            if (!logged) {
-                orig_conn = conn;
-                logged = true;
-                qd_log(qd_log_source("SERVER"), QD_LOG_CRITICAL, "Processing    event batch for pn_connection %p on thread %p", (void*)conn, (void*)sys_thread_self());
-            }
-            assert(orig_conn == conn);
+//            if (!logged) {
+//                orig_conn = conn;
+//                logged = true;
+//                qd_log(qd_log_source("SERVER"), QD_LOG_CRITICAL, "Processing    event batch for pn_connection %p on thread %p", (void*)conn, (void*)sys_thread_self());
+//            }
+//            assert(orig_conn == conn);
 
             if (!pn_conn)
                 pn_conn = conn;
@@ -1093,7 +1090,7 @@ static void *thread_run(void *arg)
         if (qd_conn)
             qd_conn_event_batch_complete(qd_server->container, qd_conn, false);
 
-        qd_log(qd_log_source("SERVER"), QD_LOG_CRITICAL, "proactor_done event batch for pn_connection %p on thread %p", (void*)conn, (void*)sys_thread_self());
+//        qd_log(qd_log_source("SERVER"), QD_LOG_CRITICAL, "proactor_done event batch for pn_connection %p on thread %p", (void*)conn, (void*)sys_thread_self());
         pn_proactor_done(qd_server->proactor, events);
     }
     return NULL;
