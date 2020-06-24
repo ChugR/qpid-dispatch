@@ -1057,7 +1057,7 @@ static void *thread_run(void *arg)
 //        pn_connection_t *orig_conn;
 
         while (running && (e = pn_event_batch_next(events))) {
-            conn = pn_event_connection(e);
+            pn_connection_t *conn = pn_event_connection(e);
 //            if (!logged) {
 //                orig_conn = conn;
 //                logged = true;

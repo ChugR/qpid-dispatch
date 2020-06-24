@@ -33,7 +33,7 @@ from proton.handlers import MessagingHandler
 from proton.reactor import Container
 
 # How many worker threads?
-W_THREADS = 1
+W_THREADS = 4
 
 # Define oversize denial condition
 OVERSIZE_CONDITION_NAME = "amqp:connection:forced"
