@@ -411,7 +411,7 @@ static bool AMQP_rx_handler(void* context, qd_link_t *link)
             (void) pn_condition_set_name(       lcond, QD_AMQP_COND_MESSAGE_SIZE_EXCEEDED);
             (void) pn_condition_set_description(lcond, QD_AMQP_COND_OVERSIZE_DESCRIPTION);
             pn_delivery_update(pnd, PN_REJECTED);
-            pn_delivery_settle(pnd);
+            // pn_delivery_settle(pnd);
             // close the link
             pn_link_close(pn_link);
             // set condition and close the connection
