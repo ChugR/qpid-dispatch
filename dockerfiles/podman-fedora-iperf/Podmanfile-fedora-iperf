@@ -25,6 +25,13 @@
 #    podman build -t chugr/fedora-dispatch-iperf  --file=Podmanfile-fedora-iperf . 
 # To run it  (this will launch the dispatch router or a shell based on ENTRYPOINT or CMD at the end)
 #    podman run -i -t chugr/fedora-dispatch-iperf
+#
+# If built to be an iperf server
+#    podman run -p 5001:5001/tcp chugr/fedora-dispatch-iperf
+
+# Run client:
+#    iperf -c localhost
+# 
 
 # Gets the latest Fedora from dockerhub
 FROM fedora:latest
@@ -51,7 +58,15 @@ RUN cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make install
 # Uncomment the following line if you would like to run all the dispatch unit tests and system tests. 
 # RUN ctest -VV
 
+# install iperf
+RUN dnf -y install iperf
+
+# Pick a startup entry
+# Start iperf server - listens on port 5001
+ENTRYPOINT ["/usr/bin/iperf",  "-s"]
+
 # Start the dispatch router
 # ENTRYPOINT ["qdrouterd"]
+
 # Start a bash session
-CMD ["/bin/bash"]
+#CMD ["/bin/bash"]
