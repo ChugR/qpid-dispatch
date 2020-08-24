@@ -24,11 +24,12 @@
 #    podman build -t chugr/iperf-server --file=Podmanfile-iperf-server .
 #
 # Push image to quay.io
+#
 #    podman push image to quay.io thank you
 #
 # Run the pod as iperf server exposing server port on local host
 #
-#    podman run -p 5001:5001/tcp chugr/fedora-dispatch-iperf
+#    podman run -p 5001:5001/tcp chugr/iperf-server
 #
 # Run client. Server must be running and port must be exposed on localhost:
 #    iperf -c localhost
