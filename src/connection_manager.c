@@ -445,7 +445,7 @@ static qd_error_t load_server_config(qd_dispatch_t *qd, qd_server_config_t *conf
     bool is_64bit = sizeof(size_t) == 8;
 #define MAX_32BIT_CAPACITY ((size_t)(2147483647))
     if (ssn_frames == 0) {
-        config->incoming_capacity = is_64bit ? MAX_32BIT_CAPACITY * config->max_frame_size : MAX_32BIT_CAPACITY;
+        config->incoming_capacity = is_64bit ? MAX_32BIT_CAPACITY * (size_t)config->max_frame_size : MAX_32BIT_CAPACITY;
     } else {
         // Limited incoming frames.
         if (is_64bit) {
