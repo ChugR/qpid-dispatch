@@ -424,10 +424,6 @@ static qd_error_t load_server_config(qd_dispatch_t *qd, qd_server_config_t *conf
     //
     // Handle the defaults for various settings
     //
-    bool is_64bit = sizeof(size_t) == 8;
-#define MAX_32BIT_CAPACITY ((size_t)(2147483647))
-    uint64_t max_32bit_capacity = (uint64_t)MAX_32BIT_CAPACITY;
-
     if (config->link_capacity == 0)
         config->link_capacity = 250;
 
@@ -441,19 +437,13 @@ static qd_error_t load_server_config(qd_dispatch_t *qd, qd_server_config_t *conf
         // incoming capacity calculation.
         config->max_frame_size = QD_AMQP_MIN_MAX_FRAME_SIZE;
 
-    if (!is_64bit) {
-        if ((uint64_t)config->max_frame_size > max_32bit_capacity) {
-            // Silently demote max-frame-size to be smaller than
-            // the maximum allowed capacity.
-            config->max_frame_size = MAX_32BIT_CAPACITY;
-        }
-    }
-
     //
     // Given session frame count and max frame size, compute session incoming_capacity
     //   On 64-bit systems the capacity has no practial limit.
     //   On 32-bit systems the largest default capacity is half the process address space.
     //
+    bool is_64bit = sizeof(size_t) == 8;
+#define MAX_32BIT_CAPACITY ((size_t)(2147483647))
     if (ssn_frames == 0) {
         config->incoming_capacity = is_64bit ? MAX_32BIT_CAPACITY * config->max_frame_size : MAX_32BIT_CAPACITY;
     } else {
@@ -464,6 +454,7 @@ static qd_error_t load_server_config(qd_dispatch_t *qd, qd_server_config_t *conf
             config->incoming_capacity = (size_t)config->max_frame_size * (size_t)ssn_frames;
         } else {
             // 32-bit systems have an upper bound to the capacity
+            uint64_t max_32bit_capacity = (uint64_t)MAX_32BIT_CAPACITY;
             uint64_t capacity     = (uint64_t)config->max_frame_size * (uint64_t)ssn_frames;
             if (capacity <= max_32bit_capacity) {
                 config->incoming_capacity = (size_t)capacity;

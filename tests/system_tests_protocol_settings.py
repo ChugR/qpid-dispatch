@@ -285,50 +285,6 @@ class MaxFrameMaxSessionFramesZeroTest(TestCase):
                             "Expected:'%s' not found in '%s'" % (expected, begin_lines[0]))
 
 
-class MaxFrameMaxFrameSize4GTest(TestCase):
-    """
-    System tests setting proton negotiated size max-frame-size and incoming-window
-    when they are both zero. Frame size is bumped up to the minimum and capacity is
-    bumped up to have an incoming window of 1
-    """
-    @classmethod
-    def setUpClass(cls):
-        '''Start a router'''
-        super(MaxFrameMaxFrameSize4GTest, cls).setUpClass()
-        name = "MaxFrameMaxFrameSize4GTest"
-        config = Qdrouterd.Config([
-            ('router', {'mode': 'standalone', 'id': 'QDR'}),
-
-            ('listener', {'host': '0.0.0.0', 'port': cls.tester.get_port(), 'maxFrameSize': '4000000000', 'maxSessionFrames': '0'}),
-        ])
-        cls.router = cls.tester.qdrouterd(name, config)
-        cls.router.wait_ready()
-        cls.address = cls.router.addresses[0]
-
-    def test_max_frame_max_session_zero(self):
-        # Set up a connection to get the Open and a receiver to get a Begin frame in the log
-        bc = BlockingConnection(self.router.addresses[0])
-        bc.create_receiver("xxx")
-        bc.close()
-
-        with  open('../setUpClass/MaxFrameMaxFrameSize4GTest.log', 'r') as router_log:
-            log_lines = router_log.read().split("\n")
-            open_lines = [s for s in log_lines if "-> @open" in s]
-            is_64bits = sys.maxsize > 2 ** 32
-            # max-frame gets demoted on 32-bit systems
-            expected = " max-frame-size=4000000000," if is_64bits else \
-                " max-frame-size=2147483647,"
-            self.assertTrue(expected in open_lines[0],
-                            "Expected:'%s' not found in '%s'" % (expected, open_lines[0]))
-            begin_lines = [s for s in log_lines if "-> @begin" in s]
-            # incoming-window should be 2^31-1 (64-bit) or
-            # (2^31-1) / max-frame-size (32-bit)
-            expected = " incoming-window=2147483647," if is_64bits else \
-                (" incoming-window=1,")
-            self.assertTrue(expected in begin_lines[0],
-                            "Expected:'%s' not found in '%s'" % (expected, begin_lines[0]))
-
-
 class ConnectorSettingsDefaultTest(TestCase):
     """
     The internal logic for protocol settings in listener and connector
