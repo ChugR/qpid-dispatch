@@ -754,6 +754,7 @@ static void qdr_link_cleanup_deliveries_CT(qdr_core_t *core, qdr_connection_t *c
     qdr_delivery_t *d = DEQ_HEAD(undelivered);
     while (d) {
         assert(d->where == QDR_DELIVERY_IN_UNDELIVERED);
+        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_link_cleanup_deliveries_CT delivery removed from undelivered. link [L%"PRIu64"]", DLV_ARGS(d), link->identity);
         if (d->presettled)
             core->dropped_presettled_deliveries++;
         d->where = QDR_DELIVERY_NOWHERE;
@@ -942,6 +943,7 @@ static void qdr_link_abort_undelivered_CT(qdr_core_t *core, qdr_link_t *link)
     sys_mutex_lock(conn->work_lock);
     qdr_delivery_t *dlv = DEQ_HEAD(link->undelivered);
     while (dlv) {
+        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_link_abort_undelivered_CT delivery removed from undelivered. link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
         if (!qdr_delivery_receive_complete(dlv))
             qdr_delivery_set_aborted(dlv, true);
         dlv = DEQ_NEXT(dlv);
@@ -1145,7 +1147,7 @@ qdr_link_t *qdr_create_link_CT(qdr_core_t        *core,
         qdr_terminus_format(target, target_str, &target_len);
     }
 
-    qd_log(core->log, QD_LOG_INFO, "[C%"PRIu64"][L%"PRIu64"] Link attached: dir=%s source=%s target=%s",
+    qd_log(core->log, QD_LOG_INFO, "[C%"PRIu64"][L%"PRIu64"] Link attached CT: dir=%s source=%s target=%s",
                conn->identity, link->identity, dir == QD_INCOMING ? "in" : "out", source_str, target_str);
 
     qdr_connection_enqueue_work_CT(core, conn, work);
@@ -1621,6 +1623,7 @@ static void qdr_link_process_initial_delivery_CT(qdr_core_t *core, qdr_link_t *l
 
         case QDR_DELIVERY_IN_UNDELIVERED:
             DEQ_REMOVE(old_link->undelivered, dlv);
+            qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_link_process_initial_delivery_CT delivery removed from undelivered. link [L%"PRIu64"], old_link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity, old_link->identity);
             dlv->where = QDR_DELIVERY_NOWHERE;
             ref_delta--;
             break;

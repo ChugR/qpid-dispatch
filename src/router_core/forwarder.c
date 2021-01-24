@@ -220,6 +220,7 @@ static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link
         // too late to drop the delivery.
         //
         if (dlv->settled && dlv->link_work && !dlv->link_work->processing) {
+            qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_forward_drop_presettled_CT_LH delivery removed from undelivered. link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
             DEQ_REMOVE(link->undelivered, dlv);
             dlv->where = QDR_DELIVERY_NOWHERE;
 
@@ -259,6 +260,8 @@ void qdr_forward_deliver_CT(qdr_core_t *core, qdr_link_t *out_link, qdr_delivery
     //
     if (out_dlv->settled && out_link->capacity > 0 && DEQ_SIZE(out_link->undelivered) >= out_link->capacity)
         qdr_forward_drop_presettled_CT_LH(core, out_link);
+
+    qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV++ qdr_forward_deliver_CT delivery added to undelivered. link [L%"PRIu64"]", DLV_ARGS(out_dlv), out_link->identity);
 
     DEQ_INSERT_TAIL(out_link->undelivered, out_dlv);
     out_dlv->where = QDR_DELIVERY_IN_UNDELIVERED;

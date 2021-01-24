@@ -175,14 +175,17 @@ int qdr_link_process_deliveries(qdr_core_t *core, qdr_link_t *link, int credit)
                 // the settled flag update.
                 do {
                     settled = dlv->settled;
+                    qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" process_deliveries loop settled=%s, link [L%"PRIu64"]", DLV_ARGS(dlv), settled ? "True" : "False", link->identity);
                     sys_mutex_unlock(conn->work_lock);
                     new_disp = conn->protocol_adaptor->deliver_handler(conn->protocol_adaptor->user_context, link, dlv, settled);
                     sys_mutex_lock(conn->work_lock);
                     if (safe_deref_qdr_link_t(dlv->link_sp) != link) {
                         to_new_link = true;
+                        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" process_deliveries loop exit: to_new_link = true", DLV_ARGS(dlv));
                         break;
                     }
                     if (new_disp == QD_DELIVERY_MOVED_TO_NEW_LINK) {
+                        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" process_deliveries loop exit: new_disp is TO_NEW_LINK", DLV_ARGS(dlv));
                         break;
                     }
                 } while (settled != dlv->settled && !to_new_link);  // oops missed the settlement
@@ -210,6 +213,7 @@ int qdr_link_process_deliveries(qdr_core_t *core, qdr_link_t *link, int credit)
                             return num_deliveries_completed;
                         }
 
+                        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_link_process_deliveries delivery removed from undelivered. link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
                         assert(dlv == DEQ_HEAD(link->undelivered));
                         DEQ_REMOVE_HEAD(link->undelivered);
                         dlv->link_work = 0;
@@ -220,11 +224,13 @@ int qdr_link_process_deliveries(qdr_core_t *core, qdr_link_t *link, int credit)
                         } else {
                             DEQ_INSERT_TAIL(link->unsettled, dlv);
                             dlv->where = QDR_DELIVERY_IN_UNSETTLED;
-                            qd_log(core->log, QD_LOG_DEBUG, DLV_FMT"Delivery transfer:  qdr_link_process_deliveries: undelivered-list -> unsettled-list", DLV_ARGS(dlv));
+                            qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- Delivery transfer:  qdr_link_process_deliveries: undelivered-list -> unsettled-list. link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
                         }
                     }
                 }
                 else if (new_disp == QD_DELIVERY_MOVED_TO_NEW_LINK) {
+                    qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV MOVED_TO_NEW_LINK from [C%"PRIu64"][L%"PRIu64"]",
+                           DLV_ARGS(dlv), link->conn_id, link->identity);
                     DEQ_REMOVE_HEAD(link->undelivered);
                     dlv->link_work = 0;
                     dlv->where = QDR_DELIVERY_NOWHERE;
@@ -286,6 +292,7 @@ void qdr_link_complete_sent_message(qdr_core_t *core, qdr_link_t *link)
     sys_mutex_lock(conn->work_lock);
     qdr_delivery_t *dlv = DEQ_HEAD(link->undelivered);
     if (!!dlv && qdr_delivery_send_complete(dlv)) {
+        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" DLV-- qdr_link_complete_sent_message delivery removed from undelivered. link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
         DEQ_REMOVE_HEAD(link->undelivered);
         if (dlv->link_work) {
             assert(dlv->link_work == link->work_list.head);
@@ -863,7 +870,7 @@ static void qdr_link_deliver_CT(qdr_core_t *core, qdr_action_t *action, bool dis
         //
         DEQ_INSERT_TAIL(link->undelivered, dlv);
         dlv->where = QDR_DELIVERY_IN_UNDELIVERED;
-        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT"Delivery transfer:  qdr_link_deliver_CT: action-list -> undelivered-list", DLV_ARGS(dlv));
+        qd_log(core->log, QD_LOG_DEBUG, DLV_FMT" Delivery transfer:  qdr_link_deliver_CT: action-list -> undelivered-list on link [L%"PRIu64"]", DLV_ARGS(dlv), link->identity);
     }
 }
 
