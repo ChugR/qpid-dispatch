@@ -283,6 +283,7 @@ void qdr_link_complete_sent_message(qdr_core_t *core, qdr_link_t *link)
             if (dlv->link_work->value == 0) {
                 DEQ_REMOVE_HEAD(link->work_list);
                 qdr_error_free(dlv->link_work->error);
+                qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] FREE LINK WORK qdr_link_complete_sent_message %p", link->conn_id, link->identity, (void*)dlv->link_work);
                 free_qdr_link_work_t(dlv->link_work);
                 dlv->link_work = 0;
             }
@@ -421,6 +422,7 @@ static void qdr_link_flow_CT(qdr_core_t *core, qdr_action_t *action, bool discar
             qdr_link_issue_credit_CT(core, link->connected_link, credit, drain);
         else {
             work = new_qdr_link_work_t();
+            qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] NEW LINK WORK qdr_link_flow_CT outgoing link connected %p", link->conn_id, link->identity, (void*)work);
             ZERO(work);
             work->work_type = QDR_LINK_WORK_FLOW;
             work->value     = credit;
@@ -442,6 +444,7 @@ static void qdr_link_flow_CT(qdr_core_t *core, qdr_action_t *action, bool discar
         if (link->link_direction == QD_OUTGOING && (credit > 0 || drain_was_set)) {
             if (drain_was_set) {
                 work = new_qdr_link_work_t();
+                qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] NEW LINK WORK qdr_link_flow_CT replenish outbound credit %p", link->conn_id, link->identity, (void*)work);
                 ZERO(work);
                 work->work_type    = QDR_LINK_WORK_FLOW;
                 work->drain_action = QDR_LINK_WORK_DRAIN_ACTION_DRAINED;
@@ -926,6 +929,7 @@ void qdr_link_issue_credit_CT(qdr_core_t *core, qdr_link_t *link, int credit, bo
 
         // need a new work flow item
         work = new_qdr_link_work_t();
+        qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] NEW LINK WORK qdr_link_issue_credit_CT %p", link->conn_id, link->identity, (void*)work);
         ZERO(work);
         work->work_type = QDR_LINK_WORK_FLOW;
         work->value     = credit;

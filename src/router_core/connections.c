@@ -442,6 +442,7 @@ int qdr_connection_process(qdr_connection_t *conn)
                     link_work = 0; // Halt work processing
                 } else {
                     qdr_error_free(link_work->error);
+                    qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] FREE LINK WORK qdr_connection_process %p", link->conn_id, link->identity, (void*)link_work);
                     free_qdr_link_work_t(link_work);
                     link_work = DEQ_HEAD(link->work_list);
                     if (link_work) {
@@ -1050,6 +1051,8 @@ static void qdr_link_cleanup_CT(qdr_core_t *core, qdr_connection_t *conn, qdr_li
     while (link_work) {
         DEQ_REMOVE_HEAD(work_list);
         qdr_error_free(link_work->error);
+        qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] FREE LINK WORK qdr_link_cleanup_CT %p", link->conn_id, link->identity, (void*)link_work);
+
         free_qdr_link_work_t(link_work);
         link_work = DEQ_HEAD(work_list);
     }
@@ -1220,6 +1223,8 @@ void qdr_link_outbound_detach_CT(qdr_core_t *core, qdr_link_t *link, qdr_error_t
     ZERO(work);
     work->work_type  = ++link->detach_count == 1 ? QDR_LINK_WORK_FIRST_DETACH : QDR_LINK_WORK_SECOND_DETACH;
     work->close_link = close;
+
+    qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] NEW LINK WORK qdr_link_outbound_detach_CT %p", link->conn_id, link->identity, (void*)work);
 
     if (error)
         work->error = error;

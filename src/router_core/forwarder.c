@@ -234,6 +234,7 @@ static void qdr_forward_drop_presettled_CT_LH(qdr_core_t *core, qdr_link_t *link
             if (dlv->link_work && (--dlv->link_work->value == 0)) {
                 DEQ_REMOVE(link->work_list, dlv->link_work);
                 qdr_error_free(dlv->link_work->error);
+                qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] FREE LINK WORK qdr_forward_drop_presettled_CT_LH %p", link->conn_id, link->identity, (void*)dlv->link_work);
                 free_qdr_link_work_t(dlv->link_work);
                 dlv->link_work = 0;
             }
@@ -277,6 +278,7 @@ void qdr_forward_deliver_CT(qdr_core_t *core, qdr_link_t *out_link, qdr_delivery
         work->value++;
     } else {
         work = new_qdr_link_work_t();
+        qd_log(core->log, QD_LOG_CRITICAL, "[C%"PRIu64"][L%"PRIu64"] NEW LINK WORK qdr_forward_deliver_CT %p", out_link->conn_id, out_link->identity, (void*)work);
         ZERO(work);
         work->work_type = QDR_LINK_WORK_DELIVERY;
         work->value     = 1;

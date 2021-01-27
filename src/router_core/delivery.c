@@ -1079,6 +1079,11 @@ void qdr_delivery_continue_peers_CT(qdr_core_t *core, qdr_delivery_t *in_dlv, bo
             //
             if (!!work) {
                 sys_mutex_lock(peer_link->conn->work_lock);
+                int whaaza = (int)work->processing;
+                if (whaaza == 0x99) {
+                    qd_log(core->log, QD_LOG_CRITICAL, DLV_FMT"Using freed LINK WORK %p", DLV_ARGS(in_dlv), (void*)work);
+                    assert(false);
+                }
                 if (work->processing || work == DEQ_HEAD(peer_link->work_list)) {
                     qdr_add_link_ref(&peer_link->conn->links_with_work[peer_link->priority], peer_link, QDR_LINK_LIST_CLASS_WORK);
                     sys_mutex_unlock(peer_link->conn->work_lock);
