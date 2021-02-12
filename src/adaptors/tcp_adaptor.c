@@ -188,6 +188,13 @@ static int handle_incoming(qdr_tcp_connection_t *conn)
         return 0;
     }
 
+    //
+    // Don't read from proton if in Q2 holdoff
+    //
+    if (conn->q2_blocked) {
+        return 0;
+    }
+
     qd_buffer_list_t buffers;
     DEQ_INIT(buffers);
     pn_raw_buffer_t raw_buffers[READ_BUFFERS];
