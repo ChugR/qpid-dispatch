@@ -17,6 +17,7 @@
  * under the License.
  */
 
+#include "tcp_adaptor.h"
 #include <proton/condition.h>
 #include <proton/listener.h>
 #include <proton/netaddr.h>
@@ -25,7 +26,6 @@
 #include "qpid/dispatch/ctools.h"
 #include "qpid/dispatch/protocol_adaptor.h"
 #include "delivery.h"
-#include "tcp_adaptor.h"
 #include <stdio.h>
 #include <inttypes.h>
 
