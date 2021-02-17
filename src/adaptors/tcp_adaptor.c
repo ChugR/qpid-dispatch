@@ -108,7 +108,7 @@ static void on_activate(void *context)
 {
     qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) context;
 
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] on_activate", conn->conn_id);
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  %p  on_activate", conn->conn_id, (void*)conn);
     while (qdr_connection_process(conn->qdr_conn)) {}
     if (conn->egress_dispatcher && conn->connector_closed) {
         qdr_connection_closed(conn->qdr_conn);
@@ -123,7 +123,7 @@ static void grant_read_buffers(qdr_tcp_connection_t *conn)
     // Give proactor more read buffers for the socket
     if (!pn_raw_connection_is_read_closed(conn->pn_raw_conn)) {
         size_t desired = pn_raw_connection_read_buffers_capacity(conn->pn_raw_conn);
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] Granted %zu read buffers", conn->conn_id, desired);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  %p  Granted %zu read buffers", conn->conn_id, (void*)conn, desired);
         while (desired) {
             size_t i;
             for (i = 0; i < desired && i < READ_BUFFERS; ++i) {
@@ -147,10 +147,10 @@ static int handle_incoming(qdr_tcp_connection_t *conn)
     //
     if (!pn_raw_connection_is_read_closed(conn->pn_raw_conn) && !conn->instream && ((conn->ingress && !conn->reply_to) || !conn->flow_enabled)) {
         if (conn->ingress && !conn->reply_to) {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Waiting for reply-to address to initiate message", conn->conn_id, conn->outgoing_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  %p [L%"PRIu64"] Waiting for reply-to address to initiate message", conn->conn_id, (void*)conn, conn->outgoing_id);
         }
         if (!conn->flow_enabled) {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Waiting for credit to initiate message", conn->conn_id, conn->outgoing_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Waiting for credit to initiate message", conn->conn_id, (void*)conn, conn->outgoing_id);
         }
         return 0;
     }
@@ -175,14 +175,14 @@ static int handle_incoming(qdr_tcp_connection_t *conn)
         }
     }
 
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] Took %zu read buffers", conn->conn_id, DEQ_SIZE(buffers));
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] Freed %i read buffers", conn->conn_id, free_count);
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  Took %zu read buffers", conn->conn_id, (void*)conn, DEQ_SIZE(buffers));
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  Freed %i read buffers", conn->conn_id, (void*)conn, free_count);
     grant_read_buffers(conn);
 
     if (conn->instream) {
         qd_message_stream_data_append(qdr_delivery_message(conn->instream), &buffers);
         qdr_delivery_continue(tcp_adaptor->core, conn->instream, false);
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Continuing message with %i bytes", conn->conn_id, conn->incoming_id, count);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Continuing message with %i bytes", conn->conn_id, (void*)conn, conn->incoming_id, count);
     } else {
         qd_message_t *msg = qd_message();
 
@@ -196,12 +196,12 @@ static int handle_incoming(qdr_tcp_connection_t *conn)
             qd_compose_insert_string(props, conn->config.address); // to
             qd_compose_insert_string(props, conn->global_id);   // subject
             qd_compose_insert_string(props, conn->reply_to);    // reply-to
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Initiating ingress to: %s reply: %s", conn->conn_id, conn->incoming_id, conn->config.address, conn->reply_to);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Initiating ingress to: %s reply: %s", conn->conn_id, (void*)conn, conn->incoming_id, conn->config.address, conn->reply_to);
         } else {
             qd_compose_insert_string(props, conn->reply_to); // to
             qd_compose_insert_string(props, conn->global_id);   // subject
             qd_compose_insert_null(props);    // reply-to
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Initiating egress to: %s", conn->conn_id, conn->incoming_id, conn->reply_to);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Initiating egress to: %s", conn->conn_id, (void*)conn, conn->incoming_id, conn->reply_to);
         }
         //qd_compose_insert_null(props);                      // correlation-id
         //qd_compose_insert_null(props);                      // content-type
@@ -222,14 +222,14 @@ static int handle_incoming(qdr_tcp_connection_t *conn)
         qd_compose_free(props);
 
         conn->instream = qdr_link_deliver(conn->incoming, msg, 0, false, 0, 0, 0, 0);
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Initiating message with %i bytes", conn->conn_id, conn->incoming_id, count);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Initiating message with %i bytes", conn->conn_id, (void*)conn, conn->incoming_id, count);
     }
     return count;
 }
 
 static void free_qdr_tcp_connection(qdr_tcp_connection_t* tc)
 {
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] Freeing tcp_connection %p", tc->conn_id, (void*) tc);
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p Freeing tcp_connection", tc->conn_id, (void*)tc);
     free(tc->reply_to);
     free(tc->remote_address);
     free(tc->global_id);
@@ -246,23 +246,23 @@ static void free_qdr_tcp_connection(qdr_tcp_connection_t* tc)
 
 static void handle_disconnected(qdr_tcp_connection_t* conn)
 {
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] handle_disconnected", conn->conn_id);
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  handle_disconnected", conn->conn_id, (void*)conn);
     if (conn->instream) {
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] handle_disconnected - close instream", conn->conn_id, conn->incoming_id);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] handle_disconnected - close instream", conn->conn_id, (void*)conn, conn->incoming_id);
         qd_message_set_receive_complete(qdr_delivery_message(conn->instream));
         qdr_delivery_continue(tcp_adaptor->core, conn->instream, true);
         qdr_delivery_decref(tcp_adaptor->core, conn->instream, "tcp-adaptor.handle_disconnected - instream");
     }
     if (conn->outstream) {
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] handle_disconnected close outstream", conn->conn_id, conn->outgoing_id);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] handle_disconnected close outstream", conn->conn_id, (void*)conn, conn->outgoing_id);
         qdr_delivery_decref(tcp_adaptor->core, conn->outstream, "tcp-adaptor.handle_disconnected - outstream");
     }
     if (conn->incoming) {
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] handle_disconnected - detach incoming", conn->conn_id, conn->incoming_id);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] handle_disconnected - detach incoming", conn->conn_id, (void*)conn, conn->incoming_id);
         qdr_link_detach(conn->incoming, QD_LOST, 0);
     }
     if (conn->outgoing) {
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] handle_disconnected - detach outgoing", conn->conn_id, conn->outgoing_id);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] handle_disconnected - detach outgoing", conn->conn_id, (void*)conn, conn->outgoing_id);
         qdr_link_detach(conn->outgoing, QD_LOST, 0);
     }
     if (conn->qdr_conn) {
@@ -299,9 +299,9 @@ static int read_message_body(qdr_tcp_connection_t *conn, qd_message_t *msg, pn_r
         } else {
             switch (stream_data_result) {
             case QD_MESSAGE_STREAM_DATA_NO_MORE:
-                qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] EOS", conn->conn_id); break;
+                qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] %p  EOS", conn->conn_id, (void*)conn); break;
             case QD_MESSAGE_STREAM_DATA_INVALID:
-                qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "[C%"PRIu64"] Invalid body data for streaming message", conn->conn_id); break;
+                qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "[C%"PRIu64"] %p  Invalid body data for streaming message", conn->conn_id, (void*)conn); break;
             default:
                 break;
             }
@@ -364,11 +364,11 @@ static bool write_outgoing_buffs(qdr_tcp_connection_t *conn)
                 bytes_written += conn->outgoing_buffs[conn->outgoing_buff_idx + i].size;
             } else {
                 qd_log(tcp_adaptor->log_source, QD_LOG_ERROR,
-                       "[C%"PRIu64"] empty buffer can't be written (%"PRIu64" of %"PRIu64")", conn->conn_id, i+1, used);
+                       "[C%"PRIu64"] %p  empty buffer can't be written (%"PRIu64" of %"PRIu64")", conn->conn_id, (void*)conn, i+1, used);
             }
         }
         qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG,
-               "[C%"PRIu64"] Writing %i bytes", conn->conn_id, bytes_written);
+               "[C%"PRIu64"] %p  Writing %i bytes", conn->conn_id, (void*)conn, bytes_written);
 
         conn->outgoing_buff_count -= used;
         conn->outgoing_buff_idx   += used;
@@ -514,12 +514,12 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
     case PN_RAW_CONNECTION_CONNECTED: {
         if (conn->ingress) {
             qdr_tcp_connection_ingress_accept(conn);
-            qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] PN_RAW_CONNECTION_CONNECTED Ingress accepted to %s from %s (global_id=%s)", conn->conn_id, conn->config.host_port, conn->remote_address, conn->global_id);
+            qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_CONNECTED Ingress accepted to %s from %s (global_id=%s)", conn->conn_id, (void*)conn, conn->config.host_port, conn->remote_address, conn->global_id);
             break;
         } else {
             conn->remote_address = get_address_string(conn->pn_raw_conn);
             conn->opened_time = tcp_adaptor->core->uptime_ticks;
-            qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] PN_RAW_CONNECTION_CONNECTED Egress connected to %s", conn->conn_id, conn->remote_address);
+            qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_CONNECTED Egress connected to %s", conn->conn_id, (void*)conn, conn->remote_address);
             if (!!conn->initial_delivery) {
                 qdr_tcp_open_server_side_connection(conn);
             }
@@ -529,17 +529,17 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
         }
     }
     case PN_RAW_CONNECTION_CLOSED_READ: {
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_CLOSED_READ", conn->conn_id);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_CLOSED_READ", conn->conn_id, (void*)conn);
         pn_raw_connection_close(conn->pn_raw_conn);
         break;
     }
     case PN_RAW_CONNECTION_CLOSED_WRITE: {
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_CLOSED_WRITE", conn->conn_id);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_CLOSED_WRITE", conn->conn_id, (void*)conn);
         pn_raw_connection_close(conn->pn_raw_conn);
         break;
     }
     case PN_RAW_CONNECTION_DISCONNECTED: {
-        qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] PN_RAW_CONNECTION_DISCONNECTED", conn->conn_id);
+        qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_DISCONNECTED", conn->conn_id, (void*)conn);
         sys_mutex_lock(conn->activation_lock);
         conn->pn_raw_conn = 0;
         sys_mutex_unlock(conn->activation_lock);
@@ -547,19 +547,19 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
         break;
     }
     case PN_RAW_CONNECTION_NEED_WRITE_BUFFERS: {
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_NEED_WRITE_BUFFERS", conn->conn_id);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_NEED_WRITE_BUFFERS", conn->conn_id, (void*)conn);
         while (qdr_connection_process(conn->qdr_conn)) {}
         handle_outgoing(conn);
         break;
     }
     case PN_RAW_CONNECTION_NEED_READ_BUFFERS: {
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_NEED_READ_BUFFERS", conn->conn_id);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_NEED_READ_BUFFERS", conn->conn_id, (void*)conn);
         while (qdr_connection_process(conn->qdr_conn)) {}
         handle_incoming(conn);
         break;
     }
     case PN_RAW_CONNECTION_WAKE: {
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_WAKE", conn->conn_id);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_WAKE", conn->conn_id, (void*)conn);
         while (qdr_connection_process(conn->qdr_conn)) {}
         break;
     }
@@ -567,7 +567,7 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
         int read = handle_incoming(conn);
         conn->last_in_time = tcp_adaptor->core->uptime_ticks;
         conn->bytes_in += read;
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_READ Read %i bytes", conn->conn_id, read);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_READ Read %i bytes", conn->conn_id, (void*)conn, read);
         while (qdr_connection_process(conn->qdr_conn)) {}
         break;
     }
@@ -583,14 +583,14 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
                 }
             }
         }
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] PN_RAW_CONNECTION_WRITTEN Wrote %zu bytes", conn->conn_id, written);
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  PN_RAW_CONNECTION_WRITTEN Wrote %zu bytes", conn->conn_id, (void*)conn, written);
         conn->last_out_time = tcp_adaptor->core->uptime_ticks;
         conn->bytes_out += written;
         while (qdr_connection_process(conn->qdr_conn)) {}
         break;
     }
     default:
-        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] Unexpected Event: %d", conn->conn_id, pn_event_type(e));
+        qd_log(log, QD_LOG_DEBUG, "[C%"PRIu64"] %p  Unexpected Event: %d", conn->conn_id, (void*)conn, pn_event_type(e));
         break;
     }
 }
@@ -598,6 +598,7 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
 static qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* listener)
 {
     qdr_tcp_connection_t* tc = NEW(qdr_tcp_connection_t);
+    qd_log(tcp_adaptor->log_source, QD_LOG_CRITICAL, "%p new ingress tcp_connection_t", (void*)tc);
     ZERO(tc);
     tc->activation_lock = sys_mutex();
     tc->ingress = true;
@@ -619,7 +620,7 @@ static qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* liste
 static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
 {
     const char *host = tc->egress_dispatcher ? "egress-dispatch" : tc->config.host_port;
-    qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] Opening server-side core connection %s", tc->conn_id, host);
+    qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] %p  Opening server-side core connection %s", tc->conn_id, (void*)tc, host);
 
     qdr_connection_info_t *info = qdr_connection_info(false, //bool             is_encrypted,
                                                       false, //bool             is_authenticated,
@@ -683,6 +684,7 @@ static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
 static qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *config, qd_server_t *server, qdr_delivery_t *initial_delivery)
 {
     qdr_tcp_connection_t* tc = NEW(qdr_tcp_connection_t);
+    qd_log(tcp_adaptor->log_source, QD_LOG_CRITICAL, "%p new egress tcp_connection_t", (void*)tc);
     ZERO(tc);
     tc->activation_lock = sys_mutex();
     if (initial_delivery) {
@@ -708,7 +710,7 @@ static qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *confi
     if (tc->egress_dispatcher)
         qdr_tcp_open_server_side_connection(tc);
     else {
-        qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] Connecting to: %s", tc->conn_id, tc->config.host_port);
+        qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] %p  Connecting to: %s", tc->conn_id, (void*)tc, tc->config.host_port);
         tc->pn_raw_conn = pn_raw_connection();
         pn_raw_connection_set_context(tc->pn_raw_conn, tc);
         pn_proactor_raw_connect(qd_server_proactor(tc->server), tc->pn_raw_conn, tc->config.host_port);
@@ -930,7 +932,7 @@ static void qdr_tcp_first_attach(void *context, qdr_connection_t *conn, qdr_link
     void *tcontext = qdr_connection_get_context(conn);
     if (tcontext) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) tcontext;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_first_attach: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_first_attach: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_first_attach: no link context");
         assert(false);
@@ -956,7 +958,7 @@ static void qdr_tcp_second_attach(void *context, qdr_link_t *link,
     if (link_context) {
         qdr_tcp_connection_t* tc = (qdr_tcp_connection_t*) link_context;
         if (qdr_link_direction(link) == QD_OUTGOING) {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_second_attach", tc->conn_id, tc->outgoing_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_second_attach", tc->conn_id, (void*)tc, tc->outgoing_id);
             if (tc->ingress) {
                 qdr_tcp_connection_copy_reply_to(tc, qdr_terminus_get_address(source));
                 // for ingress, can start reading from socket once we have
@@ -967,7 +969,7 @@ static void qdr_tcp_second_attach(void *context, qdr_link_t *link,
             }
             qdr_link_flow(tcp_adaptor->core, link, 10, false);
         } else if (!tc->ingress) {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_second_attach", tc->conn_id, tc->incoming_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_second_attach", tc->conn_id, (void*)tc, tc->incoming_id);
             //for egress we can start reading from the socket once we
             //have the link to send messages over
             grant_read_buffers(tc);
@@ -993,12 +995,12 @@ static void qdr_tcp_flow(void *context, qdr_link_t *link, int credit)
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
         if (!conn->flow_enabled && credit > 0) {
             conn->flow_enabled = true;
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_flow: Flow enabled, credit=%d",
-                   conn->conn_id, conn->outgoing_id, credit);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_flow: Flow enabled, credit=%d",
+                   conn->conn_id, (void*)conn, conn->outgoing_id, credit);
             handle_incoming(conn);
         } else {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_flow: No action. enabled:%s, credit:%d",
-                   conn->conn_id, qdr_tcp_conn_linkid(conn), conn->flow_enabled?"T":"F", credit);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_flow: No action. enabled:%s, credit:%d",
+                   conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn), conn->flow_enabled?"T":"F", credit);
         }
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_flow: no link context");
@@ -1012,7 +1014,7 @@ static void qdr_tcp_offer(void *context, qdr_link_t *link, int delivery_count)
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_offer: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_offer: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_offer: no link context");
         assert(false);
@@ -1026,7 +1028,7 @@ static void qdr_tcp_drained(void *context, qdr_link_t *link)
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_drained: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_drained: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_drained: no link context");
         assert(false);
@@ -1039,7 +1041,7 @@ static void qdr_tcp_drain(void *context, qdr_link_t *link, bool mode)
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_drain: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_drain: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_drain: no link context");
         assert(false);
@@ -1052,7 +1054,7 @@ static int qdr_tcp_push(void *context, qdr_link_t *link, int limit)
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_push", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_push", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
         return qdr_link_process_deliveries(tcp_adaptor->core, link, limit);
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_push: no link context");
@@ -1097,7 +1099,7 @@ static uint64_t qdr_tcp_deliver(void *context, qdr_link_t *link, qdr_delivery_t 
                                                      false,
                                                      NULL,
                                                      &(tc->incoming_id));
-                qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] Create Link to %s", tc->conn_id, tc->incoming->identity, tc->reply_to);
+                qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] Create Link to %s", tc->conn_id, (void*)tc, tc->incoming->identity, tc->reply_to);
                 qdr_link_set_context(tc->incoming, tc);
                 //add this connection to those visible through management now that we have the global_id
                 qdr_action_t *action = qdr_action(qdr_add_tcp_connection_CT, "add_tcp_connection");
@@ -1121,7 +1123,7 @@ static int qdr_tcp_get_credit(void *context, qdr_link_t *link)
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_get_credit: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_get_credit: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_get_credit: no link context");
         assert(false);
@@ -1156,7 +1158,7 @@ static void qdr_tcp_conn_close(void *context, qdr_connection_t *conn, qdr_error_
     void *tcontext = qdr_connection_get_context(conn);
     if (tcontext) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) tcontext;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_conn_close: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_conn_close: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_conn_close: no connection context");
         assert(false);
@@ -1169,7 +1171,7 @@ static void qdr_tcp_conn_trace(void *context, qdr_connection_t *conn, bool trace
     void *tcontext = qdr_connection_get_context(conn);
     if (tcontext) {
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) tcontext;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] qdr_tcp_conn_trace: NOOP", conn->conn_id, qdr_tcp_conn_linkid(conn));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p [L%"PRIu64"] qdr_tcp_conn_trace: NOOP", conn->conn_id, (void*)conn, qdr_tcp_conn_linkid(conn));
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_conn_trace: no connection context");
         assert(false);
@@ -1183,7 +1185,7 @@ static void qdr_tcp_activate(void *notused, qdr_connection_t *c)
         qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) context;
         sys_mutex_lock(conn->activation_lock);
         if (conn->pn_raw_conn) {
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] qdr_tcp_activate: waking raw connection", conn->conn_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  qdr_tcp_activate: waking raw connection", conn->conn_id, (void*)conn);
             pn_raw_connection_wake(conn->pn_raw_conn);
             sys_mutex_unlock(conn->activation_lock);
         } else if (conn->activate_timer) {
@@ -1194,11 +1196,11 @@ static void qdr_tcp_activate(void *notused, qdr_connection_t *c)
             // received. Prior to that however a subscribing link (and
             // its associated connection must be setup), for which we
             // fake wakeup by using a timer.
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] qdr_tcp_activate: schedule activate_timer", conn->conn_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  qdr_tcp_activate: schedule activate_timer", conn->conn_id, (void*)conn);
             qd_timer_schedule(conn->activate_timer, 0);
         } else {
             sys_mutex_unlock(conn->activation_lock);
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] qdr_tcp_activate: Cannot activate", conn->conn_id);
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  qdr_tcp_activate: Cannot activate", conn->conn_id, (void*)conn);
         }
     } else {
         qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "qdr_tcp_activate: no connection context");
@@ -1516,8 +1518,8 @@ static void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bo
         qdr_tcp_connection_t *conn = (qdr_tcp_connection_t*) action->args.general.context_1;
         DEQ_INSERT_TAIL(tcp_adaptor->connections, conn);
         conn->in_list = true;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] qdr_add_tcp_connection_CT %s (%zu)",
-            conn->conn_id, conn->config.host_port, DEQ_SIZE(tcp_adaptor->connections));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  qdr_add_tcp_connection_CT %s (%zu)",
+            conn->conn_id, (void*)conn, conn->config.host_port, DEQ_SIZE(tcp_adaptor->connections));
     }
 }
 
@@ -1527,8 +1529,8 @@ static void qdr_del_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bo
         qdr_tcp_connection_t *conn = (qdr_tcp_connection_t*) action->args.general.context_1;
         if (conn->in_list) {
             DEQ_REMOVE(tcp_adaptor->connections, conn);
-            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] qdr_del_tcp_connection_CT %s (%zu)",
-                   conn->conn_id, conn->config.host_port, DEQ_SIZE(tcp_adaptor->connections));
+            qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  qdr_del_tcp_connection_CT %s (%zu)",
+                   conn->conn_id, (void*)conn, conn->config.host_port, DEQ_SIZE(tcp_adaptor->connections));
         }
         free_qdr_tcp_connection(conn);
     }
