@@ -108,7 +108,7 @@ static void on_activate(void *context)
 {
     qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) context;
 
-    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  %p  on_activate", conn->conn_id, (void*)conn);
+    qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p on_activate", conn->conn_id, (void*)conn);
     while (qdr_connection_process(conn->qdr_conn)) {}
     if (conn->egress_dispatcher && conn->connector_closed) {
         qdr_connection_closed(conn->qdr_conn);
@@ -123,7 +123,7 @@ static void grant_read_buffers(qdr_tcp_connection_t *conn)
     // Give proactor more read buffers for the socket
     if (!pn_raw_connection_is_read_closed(conn->pn_raw_conn)) {
         size_t desired = pn_raw_connection_read_buffers_capacity(conn->pn_raw_conn);
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p  %p  Granted %zu read buffers", conn->conn_id, (void*)conn, desired);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"] %p Granted %zu read buffers", conn->conn_id, (void*)conn, desired);
         while (desired) {
             size_t i;
             for (i = 0; i < desired && i < READ_BUFFERS; ++i) {
@@ -672,8 +672,8 @@ static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
                                          tc->initial_delivery,
                                          &(tc->outgoing_id));
     if (!!tc->initial_delivery) {
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" initial_delivery ownership passed to "DLV_FMT,
-               DLV_ARGS(tc->initial_delivery), tc->outgoing->conn_id, tc->outgoing->identity, tc->initial_delivery->delivery_id);
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" initial_delivery ownership passed to "DLV_FMT" %p",
+               DLV_ARGS(tc->initial_delivery), tc->outgoing->conn_id, tc->outgoing->identity, tc->initial_delivery->delivery_id, (void*)tc);
         qdr_delivery_decref(tcp_adaptor->core, tc->initial_delivery, "tcp-adaptor - passing initial_delivery into new link");
         tc->initial_delivery = 0;
     }
@@ -1069,7 +1069,7 @@ static uint64_t qdr_tcp_deliver(void *context, qdr_link_t *link, qdr_delivery_t 
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
         qdr_tcp_connection_t* tc = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" qdr_tcp_deliver Delivery event", DLV_ARGS(delivery));
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" %p qdr_tcp_deliver Delivery event", DLV_ARGS(delivery), (void*)tc);
         if (tc->egress_dispatcher) {
             qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" tcp_adaptor initiating egress connection", DLV_ARGS(delivery));
             qdr_tcp_connection_egress(&(tc->config), tc->server, delivery);
@@ -1137,8 +1137,8 @@ static void qdr_tcp_delivery_update(void *context, qdr_delivery_t *dlv, uint64_t
     void* link_context = qdr_link_get_context(qdr_delivery_link(dlv));
     if (link_context) {
         qdr_tcp_connection_t* tc = (qdr_tcp_connection_t*) link_context;
-        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" qdr_tcp_delivery_update: disp: %"PRIu64", settled: %s",
-               DLV_ARGS(dlv), disp, settled ? "true" : "false");
+        qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, DLV_FMT" %p qdr_tcp_delivery_update: disp: %"PRIu64", settled: %s",
+               DLV_ARGS(dlv), (void*)tc, disp, settled ? "true" : "false");
 
         //
         // If one of the streaming deliveries is ever settled, the connection must be torn down.
