@@ -608,7 +608,7 @@ class TcpAdaptor(TestCase):
     # A series of 1-byte messsages, one at a time, to prove general connectivity
     #
     @SkipIfNeeded(DISABLE_SELECTOR_TESTS, DISABLE_SELECTOR_REASON)
-    def test_01_tcp_basic_connectivity(self):
+    def xtest_01_tcp_basic_connectivity(self):
         """
         Echo a series of 1-byte messages, one at a time, to prove general connectivity.
         Every listener is tried. Proves every router can forward to servers on
@@ -664,7 +664,7 @@ class TcpAdaptor(TestCase):
         self.logger.log("TCP_TEST Stop %s SUCCESS" % name)
 
     @SkipIfNeeded(DISABLE_SELECTOR_TESTS, DISABLE_SELECTOR_REASON)
-    def test_13_tcp_EA1_EC2_500000(self):
+    def xtest_13_tcp_EA1_EC2_500000(self):
         name = "test_12_tcp_EA1_EC2_500000"
         self.logger.log("TCP_TEST Start %s" % name)
         pairs = [self.EchoPair(self.INTA, self.INTA, sizes=[500000])]
@@ -676,7 +676,7 @@ class TcpAdaptor(TestCase):
         self.logger.log("TCP_TEST Stop %s SUCCESS" % name)
 
     @SkipIfNeeded(DISABLE_SELECTOR_TESTS, DISABLE_SELECTOR_REASON)
-    def test_20_tcp_connect_disconnect(self):
+    def xtest_20_tcp_connect_disconnect(self):
         name = "test_20_tcp_connect_disconnect"
         self.logger.log("TCP_TEST Start %s" % name)
         pairs = [self.EchoPair(self.INTA, self.INTA, sizes=[0])]
@@ -690,7 +690,7 @@ class TcpAdaptor(TestCase):
 
     # concurrent messages
     @SkipIfNeeded(DISABLE_SELECTOR_TESTS, DISABLE_SELECTOR_REASON)
-    def test_50_concurrent(self):
+    def xtest_50_concurrent(self):
         name = "test_50_concurrent_AtoA_BtoB"
         self.logger.log("TCP_TEST Start %s" % name)
         pairs = [self.EchoPair(self.INTA, self.INTA),
