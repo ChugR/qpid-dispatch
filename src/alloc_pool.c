@@ -620,7 +620,7 @@ void qd_alloc_finalize(void)
                 DEQ_REMOVE_HEAD(qtype->allocated);
                 char **strings = backtrace_symbols(item->backtrace, item->backtrace_size);
 
-                if (!suppressed) {
+                if (true) {  // HACK ALERT print them all regardless of suppressions if (!suppressed) {
                     // DISPATCH-1795: avoid output noise by only printing
                     // backtraces for leaks that are not suppressed
                     qd_log_formatted_time(&item->timestamp, buf, 100);
