@@ -33,6 +33,8 @@
 ALLOC_DEFINE(qd_tcp_listener_t);
 ALLOC_DEFINE(qd_tcp_connector_t);
 
+#define STATIC
+
 #define READ_BUFFERS 4
 #define WRITE_BUFFERS 4
 
@@ -97,22 +99,22 @@ typedef struct qdr_tcp_adaptor_t {
     qd_log_source_t          *log_source;
 } qdr_tcp_adaptor_t;
 
-static qdr_tcp_adaptor_t *tcp_adaptor;
+STATIC qdr_tcp_adaptor_t *tcp_adaptor;
 
-static void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard);
-static void qdr_del_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard);
+STATIC void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard);
+STATIC void qdr_del_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard);
 
-static void handle_disconnected(qdr_tcp_connection_t* conn);
-static void free_qdr_tcp_connection(qdr_tcp_connection_t* conn);
-static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc);
+STATIC void handle_disconnected(qdr_tcp_connection_t* conn);
+STATIC void free_qdr_tcp_connection(qdr_tcp_connection_t* conn);
+STATIC void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc);
 
-static inline uint64_t qdr_tcp_conn_linkid(const qdr_tcp_connection_t *conn)
+STATIC uint64_t qdr_tcp_conn_linkid(const qdr_tcp_connection_t *conn)
 {
     assert(conn);
     return conn->instream ? conn->incoming_id : conn->outgoing_id;
 }
 
-static void on_activate(void *context)
+STATIC void on_activate(void *context)
 {
     qdr_tcp_connection_t* conn = (qdr_tcp_connection_t*) context;
 
@@ -125,7 +127,7 @@ static void on_activate(void *context)
     }
 }
 
-static void grant_read_buffers(qdr_tcp_connection_t *conn)
+STATIC void grant_read_buffers(qdr_tcp_connection_t *conn)
 {
     if (conn->raw_closed_read)
         return;
@@ -181,7 +183,7 @@ void qdr_tcp_q2_unblocked_handler(const qd_alloc_safe_ptr_t context)
 // Fetch incoming raw incoming buffers from proton and pass them to
 // existing delivery or create a new delivery.
 // If close is pending then do not give more buffers to proton.
-static int handle_incoming_impl(qdr_tcp_connection_t *conn, bool close_pending)
+STATIC int handle_incoming_impl(qdr_tcp_connection_t *conn, bool close_pending)
 {
     //
     // Don't initiate an ingress stream message if we don't yet have a reply-to address and credit.
@@ -290,13 +292,13 @@ static int handle_incoming_impl(qdr_tcp_connection_t *conn, bool close_pending)
 }
 
 
-static int handle_incoming(qdr_tcp_connection_t *conn)
+STATIC int handle_incoming(qdr_tcp_connection_t *conn)
 {
     // Normal incoming runs with no close pending
     return handle_incoming_impl(conn, false);
 }
 
-static void flush_outgoing_buffs(qdr_tcp_connection_t *conn)
+STATIC void flush_outgoing_buffs(qdr_tcp_connection_t *conn)
 {
     // Flush buffers staged for writing to raw conn
     // and release any references to stream data objects.
@@ -320,7 +322,7 @@ static void flush_outgoing_buffs(qdr_tcp_connection_t *conn)
 }
 
 
-static void free_qdr_tcp_connection(qdr_tcp_connection_t* tc)
+STATIC void free_qdr_tcp_connection(qdr_tcp_connection_t* tc)
 {
     free(tc->reply_to);
     free(tc->remote_address);
@@ -335,7 +337,7 @@ static void free_qdr_tcp_connection(qdr_tcp_connection_t* tc)
     free_qdr_tcp_connection_t(tc);
 }
 
-static void handle_disconnected(qdr_tcp_connection_t* conn)
+STATIC void handle_disconnected(qdr_tcp_connection_t* conn)
 {
     if (conn->instream) {
         qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "[C%"PRIu64"][L%"PRIu64"] handle_disconnected - close instream", conn->conn_id, conn->incoming_id);
@@ -371,7 +373,7 @@ static void handle_disconnected(qdr_tcp_connection_t* conn)
     qdr_action_enqueue(tcp_adaptor->core, action);
 }
 
-static int read_message_body(qdr_tcp_connection_t *conn, qd_message_t *msg, pn_raw_buffer_t *buffers, int count)
+STATIC int read_message_body(qdr_tcp_connection_t *conn, qd_message_t *msg, pn_raw_buffer_t *buffers, int count)
 {
     int used = 0;
 
@@ -435,7 +437,7 @@ static int read_message_body(qdr_tcp_connection_t *conn, qd_message_t *msg, pn_r
 }
 
 
-static bool write_outgoing_buffs(qdr_tcp_connection_t *conn)
+STATIC bool write_outgoing_buffs(qdr_tcp_connection_t *conn)
 {
     // Send the outgoing buffs to pn_raw_conn.
     // Return true if all the buffers went out.
@@ -467,7 +469,7 @@ static bool write_outgoing_buffs(qdr_tcp_connection_t *conn)
     return result;
 }
 
-static void handle_outgoing(qdr_tcp_connection_t *conn)
+STATIC void handle_outgoing(qdr_tcp_connection_t *conn)
 {
     if (conn->outstream) {
         if (conn->raw_closed_write) {
@@ -503,7 +505,7 @@ static void handle_outgoing(qdr_tcp_connection_t *conn)
     }
 }
 
-static char *get_global_id(char *site_id, char *host_port)
+STATIC char *get_global_id(char *site_id, char *host_port)
 {
     int len1 = strlen(host_port);
     int len = site_id ? len1 + strlen(site_id) + 2 : len1 + 1;
@@ -516,7 +518,7 @@ static char *get_global_id(char *site_id, char *host_port)
     return result;
 }
 
-static char *get_address_string(pn_raw_connection_t *socket)
+STATIC char *get_address_string(pn_raw_connection_t *socket)
 {
     const pn_netaddr_t *netaddr = pn_raw_connection_remote_addr(socket);
     char buffer[1024];
@@ -528,7 +530,7 @@ static char *get_address_string(pn_raw_connection_t *socket)
     }
 }
 
-static void qdr_tcp_connection_ingress_accept(qdr_tcp_connection_t* tc)
+STATIC void qdr_tcp_connection_ingress_accept(qdr_tcp_connection_t* tc)
 {
     tc->remote_address = get_address_string(tc->pn_raw_conn);
     tc->global_id = get_global_id(tc->config.site_id, tc->remote_address);
@@ -603,7 +605,7 @@ static void qdr_tcp_connection_ingress_accept(qdr_tcp_connection_t* tc)
     qdr_action_enqueue(tcp_adaptor->core, action);
 }
 
-static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void *context)
+STATIC void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void *context)
 {
     qdr_tcp_connection_t *conn = (qdr_tcp_connection_t*) context;
     qd_log_source_t *log = tcp_adaptor->log_source;
@@ -702,7 +704,7 @@ static void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
     }
 }
 
-static qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* listener)
+STATIC qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* listener)
 {
     qdr_tcp_connection_t* tc = new_qdr_tcp_connection_t();
     ZERO(tc);
@@ -724,7 +726,7 @@ static qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* liste
 }
 
 
-static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
+STATIC void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
 {
     const char *host = tc->egress_dispatcher ? "egress-dispatch" : tc->config.host_port;
     qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] Opening server-side core connection %s", tc->conn_id, host);
@@ -788,7 +790,7 @@ static void qdr_tcp_open_server_side_connection(qdr_tcp_connection_t* tc)
 }
 
 
-static qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *config, qd_server_t *server, qdr_delivery_t *initial_delivery)
+STATIC qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *config, qd_server_t *server, qdr_delivery_t *initial_delivery)
 {
     qdr_tcp_connection_t* tc = new_qdr_tcp_connection_t();
     ZERO(tc);
@@ -826,7 +828,7 @@ static qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *confi
     return tc;
 }
 
-static void free_bridge_config(qd_bridge_config_t *config)
+STATIC void free_bridge_config(qd_bridge_config_t *config)
 {
     if (!config) return;
     free(config->name);
@@ -839,7 +841,7 @@ static void free_bridge_config(qd_bridge_config_t *config)
 
 #define CHECK() if (qd_error_code()) goto error
 
-static qd_error_t load_bridge_config(qd_dispatch_t *qd, qd_bridge_config_t *config, qd_entity_t* entity, bool is_listener)
+STATIC qd_error_t load_bridge_config(qd_dispatch_t *qd, qd_bridge_config_t *config, qd_entity_t* entity, bool is_listener)
 {
     qd_error_clear();
     ZERO(config);
@@ -861,7 +863,7 @@ static qd_error_t load_bridge_config(qd_dispatch_t *qd, qd_bridge_config_t *conf
     return qd_error_code();
 }
 
-static void log_tcp_bridge_config(qd_log_source_t *log, qd_bridge_config_t *c, const char *what) {
+STATIC void log_tcp_bridge_config(qd_log_source_t *log, qd_bridge_config_t *c, const char *what) {
     qd_log(log, QD_LOG_INFO, "Configured %s for %s, %s:%s", what, c->address, c->host, c->port);
 }
 
@@ -873,7 +875,7 @@ void qd_tcp_listener_decref(qd_tcp_listener_t* li)
     }
 }
 
-static void handle_listener_event(pn_event_t *e, qd_server_t *qd_server, void *context) {
+STATIC void handle_listener_event(pn_event_t *e, qd_server_t *qd_server, void *context) {
     qd_log_source_t *log = tcp_adaptor->log_source;
 
     qd_tcp_listener_t *li = (qd_tcp_listener_t*) context;
@@ -913,7 +915,7 @@ static void handle_listener_event(pn_event_t *e, qd_server_t *qd_server, void *c
     }
 }
 
-static qd_tcp_listener_t *qd_tcp_listener(qd_server_t *server)
+STATIC qd_tcp_listener_t *qd_tcp_listener(qd_server_t *server)
 {
     qd_tcp_listener_t *li = new_qd_tcp_listener_t();
     if (!li) return 0;
@@ -925,9 +927,9 @@ static qd_tcp_listener_t *qd_tcp_listener(qd_server_t *server)
     return li;
 }
 
-static const int BACKLOG = 50;  /* Listening backlog */
+STATIC const int BACKLOG = 50;  /* Listening backlog */
 
-static bool tcp_listener_listen(qd_tcp_listener_t *li) {
+STATIC bool tcp_listener_listen(qd_tcp_listener_t *li) {
    li->pn_listener = pn_listener();
     if (li->pn_listener) {
         pn_listener_set_context(li->pn_listener, &li->context);
@@ -974,7 +976,7 @@ qd_error_t qd_entity_refresh_tcpListener(qd_entity_t* entity, void *impl)
     return QD_ERROR_NONE;
 }
 
-static qd_tcp_connector_t *qd_tcp_connector(qd_server_t *server)
+STATIC qd_tcp_connector_t *qd_tcp_connector(qd_server_t *server)
 {
     qd_tcp_connector_t *c = new_qd_tcp_connector_t();
     if (!c) return 0;
@@ -1007,7 +1009,7 @@ qd_tcp_connector_t *qd_dispatch_configure_tcp_connector(qd_dispatch_t *qd, qd_en
     return c;
 }
 
-static void close_egress_dispatcher(qdr_tcp_connection_t *context)
+STATIC void close_egress_dispatcher(qdr_tcp_connection_t *context)
 {
     //actual close needs to happen on connection thread
     context->connector_closed = true;
@@ -1032,7 +1034,7 @@ qd_error_t qd_entity_refresh_tcpConnector(qd_entity_t* entity, void *impl)
     return QD_ERROR_NONE;
 }
 
-static void qdr_tcp_first_attach(void *context, qdr_connection_t *conn, qdr_link_t *link,
+STATIC void qdr_tcp_first_attach(void *context, qdr_connection_t *conn, qdr_link_t *link,
                                  qdr_terminus_t *source, qdr_terminus_t *target,
                                  qd_session_class_t session_class)
 {
@@ -1046,19 +1048,19 @@ static void qdr_tcp_first_attach(void *context, qdr_connection_t *conn, qdr_link
     }
 }
 
-static void qdr_tcp_connection_copy_reply_to(qdr_tcp_connection_t* tc, qd_iterator_t* reply_to)
+STATIC void qdr_tcp_connection_copy_reply_to(qdr_tcp_connection_t* tc, qd_iterator_t* reply_to)
 {
     tc->reply_to = (char*)  qd_iterator_copy(reply_to);
 }
 
-static void qdr_tcp_connection_copy_global_id(qdr_tcp_connection_t* tc, qd_iterator_t* subject)
+STATIC void qdr_tcp_connection_copy_global_id(qdr_tcp_connection_t* tc, qd_iterator_t* subject)
 {
     int length = qd_iterator_length(subject);
     tc->global_id = malloc(length + 1);
     qd_iterator_strncpy(subject, tc->global_id, length + 1);
 }
 
-static void qdr_tcp_second_attach(void *context, qdr_link_t *link,
+STATIC void qdr_tcp_second_attach(void *context, qdr_link_t *link,
                                   qdr_terminus_t *source, qdr_terminus_t *target)
 {
     void* link_context = qdr_link_get_context(link);
@@ -1088,14 +1090,14 @@ static void qdr_tcp_second_attach(void *context, qdr_link_t *link,
 }
 
 
-static void qdr_tcp_detach(void *context, qdr_link_t *link, qdr_error_t *error, bool first, bool close)
+STATIC void qdr_tcp_detach(void *context, qdr_link_t *link, qdr_error_t *error, bool first, bool close)
 {
     qd_log(tcp_adaptor->log_source, QD_LOG_ERROR, "qdr_tcp_detach");
     assert(false);
 }
 
 
-static void qdr_tcp_flow(void *context, qdr_link_t *link, int credit)
+STATIC void qdr_tcp_flow(void *context, qdr_link_t *link, int credit)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1116,7 +1118,7 @@ static void qdr_tcp_flow(void *context, qdr_link_t *link, int credit)
 }
 
 
-static void qdr_tcp_offer(void *context, qdr_link_t *link, int delivery_count)
+STATIC void qdr_tcp_offer(void *context, qdr_link_t *link, int delivery_count)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1130,7 +1132,7 @@ static void qdr_tcp_offer(void *context, qdr_link_t *link, int delivery_count)
 }
 
 
-static void qdr_tcp_drained(void *context, qdr_link_t *link)
+STATIC void qdr_tcp_drained(void *context, qdr_link_t *link)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1143,7 +1145,7 @@ static void qdr_tcp_drained(void *context, qdr_link_t *link)
 }
 
 
-static void qdr_tcp_drain(void *context, qdr_link_t *link, bool mode)
+STATIC void qdr_tcp_drain(void *context, qdr_link_t *link, bool mode)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1156,7 +1158,7 @@ static void qdr_tcp_drain(void *context, qdr_link_t *link, bool mode)
 }
 
 
-static int qdr_tcp_push(void *context, qdr_link_t *link, int limit)
+STATIC int qdr_tcp_push(void *context, qdr_link_t *link, int limit)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1171,7 +1173,7 @@ static int qdr_tcp_push(void *context, qdr_link_t *link, int limit)
 }
 
 
-static uint64_t qdr_tcp_deliver(void *context, qdr_link_t *link, qdr_delivery_t *delivery, bool settled)
+STATIC uint64_t qdr_tcp_deliver(void *context, qdr_link_t *link, qdr_delivery_t *delivery, bool settled)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1225,7 +1227,7 @@ static uint64_t qdr_tcp_deliver(void *context, qdr_link_t *link, qdr_delivery_t 
 }
 
 
-static int qdr_tcp_get_credit(void *context, qdr_link_t *link)
+STATIC int qdr_tcp_get_credit(void *context, qdr_link_t *link)
 {
     void* link_context = qdr_link_get_context(link);
     if (link_context) {
@@ -1239,7 +1241,7 @@ static int qdr_tcp_get_credit(void *context, qdr_link_t *link)
 }
 
 
-static void qdr_tcp_delivery_update(void *context, qdr_delivery_t *dlv, uint64_t disp, bool settled)
+STATIC void qdr_tcp_delivery_update(void *context, qdr_delivery_t *dlv, uint64_t disp, bool settled)
 {
     void* link_context = qdr_link_get_context(qdr_delivery_link(dlv));
     if (link_context) {
@@ -1260,7 +1262,7 @@ static void qdr_tcp_delivery_update(void *context, qdr_delivery_t *dlv, uint64_t
 }
 
 
-static void qdr_tcp_conn_close(void *context, qdr_connection_t *conn, qdr_error_t *error)
+STATIC void qdr_tcp_conn_close(void *context, qdr_connection_t *conn, qdr_error_t *error)
 {
     void *tcontext = qdr_connection_get_context(conn);
     if (tcontext) {
@@ -1273,7 +1275,7 @@ static void qdr_tcp_conn_close(void *context, qdr_connection_t *conn, qdr_error_
 }
 
 
-static void qdr_tcp_conn_trace(void *context, qdr_connection_t *conn, bool trace)
+STATIC void qdr_tcp_conn_trace(void *context, qdr_connection_t *conn, bool trace)
 {
     void *tcontext = qdr_connection_get_context(conn);
     if (tcontext) {
@@ -1285,7 +1287,7 @@ static void qdr_tcp_conn_trace(void *context, qdr_connection_t *conn, bool trace
     }
 }
 
-static void qdr_tcp_activate(void *notused, qdr_connection_t *c)
+STATIC void qdr_tcp_activate(void *notused, qdr_connection_t *c)
 {
     void *context = qdr_connection_get_context(c);
     if (context) {
@@ -1322,7 +1324,7 @@ static void qdr_tcp_activate(void *notused, qdr_connection_t *c)
  *   1) Register the protocol adaptor with the router-core.
  *   2) Prepare the protocol adaptor to be configured.
  */
-static void qdr_tcp_adaptor_init(qdr_core_t *core, void **adaptor_context)
+STATIC void qdr_tcp_adaptor_init(qdr_core_t *core, void **adaptor_context)
 {
     qdr_tcp_adaptor_t *adaptor = NEW(qdr_tcp_adaptor_t);
     adaptor->core    = core;
@@ -1353,7 +1355,7 @@ static void qdr_tcp_adaptor_init(qdr_core_t *core, void **adaptor_context)
 }
 
 
-static void qdr_tcp_adaptor_final(void *adaptor_context)
+STATIC void qdr_tcp_adaptor_final(void *adaptor_context)
 {
     qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "Shutting down TCP protocol adaptor");
     qdr_tcp_adaptor_t *adaptor = (qdr_tcp_adaptor_t*) adaptor_context;
@@ -1422,7 +1424,7 @@ const char *qdr_tcp_connection_columns[] =
 
 const char *TCP_CONNECTION_TYPE = "org.apache.qpid.dispatch.tcpConnection";
 
-static void insert_column(qdr_core_t *core, qdr_tcp_connection_t *conn, int col, qd_composed_field_t *body)
+STATIC void insert_column(qdr_core_t *core, qdr_tcp_connection_t *conn, int col, qd_composed_field_t *body)
 {
     qd_log(tcp_adaptor->log_source, QD_LOG_DEBUG, "Insert column %i for %p", col, (void*) conn);
     char id_str[100];
@@ -1486,7 +1488,7 @@ static void insert_column(qdr_core_t *core, qdr_tcp_connection_t *conn, int col,
 }
 
 
-static void write_list(qdr_core_t *core, qdr_query_t *query,  qdr_tcp_connection_t *conn)
+STATIC void write_list(qdr_core_t *core, qdr_query_t *query,  qdr_tcp_connection_t *conn)
 {
     qd_composed_field_t *body = query->body;
 
@@ -1502,7 +1504,7 @@ static void write_list(qdr_core_t *core, qdr_query_t *query,  qdr_tcp_connection
     qd_compose_end_list(body);
 }
 
-static void write_map(qdr_core_t           *core,
+STATIC void write_map(qdr_core_t           *core,
                       qdr_tcp_connection_t *conn,
                       qd_composed_field_t  *body,
                       const char           *qdr_connection_columns[])
@@ -1517,7 +1519,7 @@ static void write_map(qdr_core_t           *core,
     qd_compose_end_map(body);
 }
 
-static void advance(qdr_query_t *query, qdr_tcp_connection_t *conn)
+STATIC void advance(qdr_query_t *query, qdr_tcp_connection_t *conn)
 {
     if (conn) {
         query->next_offset++;
@@ -1529,7 +1531,7 @@ static void advance(qdr_query_t *query, qdr_tcp_connection_t *conn)
     }
 }
 
-static qdr_tcp_connection_t *find_by_identity(qdr_core_t *core, qd_iterator_t *identity)
+STATIC qdr_tcp_connection_t *find_by_identity(qdr_core_t *core, qd_iterator_t *identity)
 {
     if (!identity)
         return 0;
@@ -1619,7 +1621,7 @@ void qdra_tcp_connection_get_CT(qdr_core_t          *core,
     qdr_agent_enqueue_response_CT(core, query);
 }
 
-static void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard)
+STATIC void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard)
 {
     if (!discard) {
         qdr_tcp_connection_t *conn = (qdr_tcp_connection_t*) action->args.general.context_1;
@@ -1630,7 +1632,7 @@ static void qdr_add_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bo
     }
 }
 
-static void qdr_del_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard)
+STATIC void qdr_del_tcp_connection_CT(qdr_core_t *core, qdr_action_t *action, bool discard)
 {
     if (!discard) {
         qdr_tcp_connection_t *conn = (qdr_tcp_connection_t*) action->args.general.context_1;
