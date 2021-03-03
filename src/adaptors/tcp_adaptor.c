@@ -552,6 +552,7 @@ STATIC void qdr_tcp_connection_ingress_accept(qdr_tcp_connection_t* tc)
 
 
     tc->conn_id = qd_server_allocate_connection_id(tc->server);
+    qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] ingress accept {conn=%p pn_raw_conn=%p}", tc->conn_id, (void*)tc, (void*)tc->pn_raw_conn);
     qdr_connection_t *conn = qdr_connection_opened(tcp_adaptor->core,
                                                    tcp_adaptor->adaptor,
                                                    true,            // incoming
@@ -642,7 +643,7 @@ STATIC void handle_connection_event(pn_event_t *e, qd_server_t *qd_server, void 
         break;
     }
     case PN_RAW_CONNECTION_DISCONNECTED: {
-        qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] PN_RAW_CONNECTION_DISCONNECTED", conn->conn_id);
+        qd_log(log, QD_LOG_INFO, "[C%"PRIu64"] PN_RAW_CONNECTION_DISCONNECTED {unbind conn=%p pn_raw_conn=%p}", conn->conn_id, (void*)conn, (void*)conn->pn_raw_conn);
         sys_mutex_lock(conn->activation_lock);
         conn->pn_raw_conn = 0;
         sys_mutex_unlock(conn->activation_lock);
@@ -716,6 +717,8 @@ STATIC qdr_tcp_connection_t *qdr_tcp_connection_ingress(qd_tcp_listener_t* liste
     tc->server = listener->server;
     sys_atomic_init(&tc->q2_restart, 0);
     tc->pn_raw_conn = pn_raw_connection();
+    qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "New ingress {bind conn=%p pn_raw_conn=%p}", (void*)tc, (void*)tc->pn_raw_conn);
+
     pn_raw_connection_set_context(tc->pn_raw_conn, tc);
     //the following call will cause a PN_RAW_CONNECTION_CONNECTED
     //event on another thread, which is where the rest of the
@@ -821,6 +824,7 @@ STATIC qdr_tcp_connection_t *qdr_tcp_connection_egress(qd_bridge_config_t *confi
     else {
         qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] Connecting to: %s", tc->conn_id, tc->config.host_port);
         tc->pn_raw_conn = pn_raw_connection();
+        qd_log(tcp_adaptor->log_source, QD_LOG_INFO, "[C%"PRIu64"] New egress {bind conn=%p pn_raw_conn=%p}", tc->conn_id, (void*)tc, (void*)tc->pn_raw_conn);
         pn_raw_connection_set_context(tc->pn_raw_conn, tc);
         pn_proactor_raw_connect(qd_server_proactor(tc->server), tc->pn_raw_conn, tc->config.host_port);
     }
